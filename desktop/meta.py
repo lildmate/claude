@@ -322,5 +322,7 @@ class ChampSelect:
     def apply_spells(self, spells: List[int]) -> None:
         if not self._ok() or len(spells) < 2:
             return
-        self.lcu.patch("/lol-champ-select/v1/session/my-selection",
-                       {"spell1Id": int(spells[0]), "spell2Id": int(spells[1])}, timeout=5)
+        response = self.lcu.s.patch(self.lcu.base + "/lol-champ-select/v1/session/my-selection",
+                                    json={"spell1Id": int(spells[0]), "spell2Id": int(spells[1])}, timeout=5)
+        if response.status_code not in (200, 204):
+            raise RuntimeError(f"A kliens nem fogadta el a spelleket ({response.status_code})")

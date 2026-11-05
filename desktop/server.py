@@ -315,6 +315,7 @@ class AppAPI:
 
     _auto_status: Optional[dict] = None
     _auto_key = None
+    _auto_failed_at = 0.0
 
     def auto_runes_tick(self) -> None:
         """Called every few seconds: once your champion is locked in, its build's
@@ -334,6 +335,8 @@ class AppAPI:
         key = (pick["championId"], position, opponent)
         if key == self._auto_key:
             return
+        if self._auto_status and not self._auto_status.get("ok") and time.monotonic() - self._auto_failed_at < 10:
+            return  # a failed try is tried again a little later
         self._auto_key = key
         rank = self._setting("buildRank", None)
         try:
@@ -348,6 +351,7 @@ class AppAPI:
             log.info("[Window] Runes set for %s %s (vs %s)", pick["championId"], lane["key"], opponent)
         except Exception as e:
             self._auto_status = {"ok": False, "championId": pick["championId"], "error": str(e)}
+            self._auto_key, self._auto_failed_at = None, time.monotonic()
             log.warning("[Window] Automatic runes failed: %s", e)
 
     def apply_build(self, body: dict) -> dict:
@@ -367,7 +371,11 @@ class AppAPI:
         name = (self._champion_index().get(champion_id) or {}).get("name") or str(champion_id)
         self.champ_select.apply_runes(f"{name} {lane_data['name']}", runes)
         if body.get("spells", True) and build.get("spells"):
-            self.champ_select.apply_spells(build["spells"])
+            try:
+                self.champ_select.apply_spells(build["spells"])
+            except Exception as e:  # the runes are in all the same
+                log.warning("[Window] Summoner spells not set: %s", e)
+                return {"ok": True, "spells": False}
         return {"ok": True}
 
     def mod_list(self, champion_id: int) -> dict:

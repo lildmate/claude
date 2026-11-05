@@ -134,3 +134,26 @@ class LiveGameTests(unittest.TestCase):
         state = api.game_state()
         self.assertEqual((state["championId"], state["position"], state["opponentGuess"]), (122, "Top", 86))
         self.assertEqual(sorted(state["enemies"]), [64, 86])
+
+
+class RetryTests(unittest.TestCase):
+    def test_a_failed_try_is_tried_again(self):
+        cs, opgg = ChampSelect(), OpGG()
+        cs.pick["locked"] = True
+        calls = []
+
+        def broken(name, runes):
+            calls.append(1)
+            raise RuntimeError("client busy")
+
+        cs.apply_runes = broken
+        api = AppAPI(Game(), None, None, None, champ_select=cs, opgg=opgg)
+        api.auto_runes_tick()
+        api.auto_runes_tick()  # too soon
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(api._auto_status["ok"])
+        api._auto_failed_at -= 11
+        cs.apply_runes = lambda name, runes: calls.append(2)
+        api.auto_runes_tick()
+        self.assertEqual(calls, [1, 2])
+        self.assertTrue(api._auto_status["ok"])

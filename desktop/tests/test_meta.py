@@ -91,17 +91,17 @@ class FakeSession:
         self.calls.append(("post", json))
         return FakeResponse({}, 200)
 
+    def patch(self, url, json=None, timeout=None):
+        self.calls.append(("patch", url, json))
+        return FakeResponse({}, 204)
+
 
 class FakeLCU:
     ok = True
     base = "https://127.0.0.1:1"
 
     def __init__(self, session):
-        self.s = session
-        self.patched = []
-
-    def patch(self, path, data, timeout=None):
-        self.patched.append((path, data))
+        self.s = session  # the real LCU client has only get() of its own: the rest goes through its session
 
 
 RUNES = {"primaryStyle": 8100, "primary": [8112, 8139, 8140, 8106], "subStyle": 8200, "secondary": [8226, 8210],
@@ -127,9 +127,10 @@ class ChampSelectTests(unittest.TestCase):
         self.assertEqual(session.calls[0], ("delete", "2"))
 
     def test_spells(self):
-        lcu = FakeLCU(FakeSession([]))
-        ChampSelect(lcu).apply_spells([14, 4])
-        self.assertEqual(lcu.patched, [("/lol-champ-select/v1/session/my-selection", {"spell1Id": 14, "spell2Id": 4})])
+        session = FakeSession([])
+        ChampSelect(FakeLCU(session)).apply_spells([14, 4])
+        self.assertEqual(session.calls, [("patch", "https://127.0.0.1:1/lol-champ-select/v1/session/my-selection",
+                                          {"spell1Id": 14, "spell2Id": 4})])
 
 
 if __name__ == "__main__":

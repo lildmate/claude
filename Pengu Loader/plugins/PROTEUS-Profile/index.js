@@ -65,9 +65,17 @@
     return out;
   }
 
+  // A few answers that were changed, as the client sent them, for the log
+  const samples = new Map();
+  function sample(url, text) {
+    const key = "SAMPLE " + url.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, "{puuid}").replace(/\/\d{5,}/g, "/{id}").split("?")[0];
+    if (samples.size < 12 && !samples.has(key) && typeof text === "string") samples.set(key, text.slice(0, 1500));
+  }
+
   function rewriteText(url, text) {
     const rank = rankFor(url);
     note(url, Boolean(rank));
+    if (rank) sample(url, text);
     if (!rank || typeof text !== "string" || !text) return text;
     try {
       return JSON.stringify(rewrite(JSON.parse(text), rank));
@@ -125,6 +133,7 @@
       const rank = update && typeof update.uri === "string" && rankFor(update.uri);
       if (update && typeof update.uri === "string") note("ws " + update.uri, Boolean(rank));
       if (!rank || !update.data) return event;
+      sample("ws " + update.uri, JSON.stringify(update.data));
       update.data = rewrite(update.data, rank);
       return new MessageEvent("message", { data: JSON.stringify(message), origin: event.origin });
     } catch (e) {
@@ -201,11 +210,12 @@
       // every minute (when something new was seen): the rank addresses, into Proteus's log
       let reported = "";
       setInterval(() => {
-        const report = [...seen.entries()].map(([url, [count, changed]]) => `${changed ? "CHANGED" : "seen"} x${count} ${url}`).sort();
+        const report = [...seen.entries()].map(([url, [count, changed]]) => `${changed ? "CHANGED" : "seen"} x${count} ${url}`).sort()
+          .concat([...samples.entries()].map(([url, text]) => `${url}: ${text}`));
         const text = report.join("\n");
         if (!report.length || text === reported) return;
         reported = text;
-        bridge.send({ type: "rank-display-debug", ranks: [...ranks.keys()].length, lines: report.slice(0, 80) });
+        bridge.send({ type: "rank-display-debug", ranks: [...ranks.keys()].length, lines: report.slice(0, 100) });
       }, 60000);
     })
     .catch((e) => console.warn(`${LOG_PREFIX} ${e.message}`));
