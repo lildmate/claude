@@ -67,6 +67,7 @@ def start(lcu, version: str) -> Optional[Window]:
 
         from .data import ClientData, GameData
         from .meta import ChampSelect, DeepLol
+        from .opgg import OpGG
         from .mods import Mods
         from .patchnotes import PatchNotes
         from .server import AppAPI, AppServer
@@ -87,6 +88,7 @@ def start(lcu, version: str) -> Optional[Window]:
             upload_dir=data_dir / "window-uploads",
             meta=DeepLol(),
             champ_select=ChampSelect(lcu),
+            opgg=OpGG(),
         )
         server = AppServer(api)
         server.start()

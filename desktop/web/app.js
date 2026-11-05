@@ -137,8 +137,8 @@
   let renderId = 0;
 
   function route() {
-    const m = /^#\/([a-z]+)(?:\/(\d+))?(?:\/([A-Za-z]+))?/.exec(location.hash) || [null, "home"];
-    return { page: m[1], id: m[2] ? parseInt(m[2], 10) : null, sub: m[3] || null };
+    const m = /^#\/([a-z]+)(?:\/(\d+))?(?:\/([A-Za-z]+))?(?:\/(\d+))?/.exec(location.hash) || [null, "home"];
+    return { page: m[1], id: m[2] ? parseInt(m[2], 10) : null, sub: m[3] || null, vs: m[4] ? parseInt(m[4], 10) : null };
   }
   async function render() {
     const id = ++renderId;
@@ -470,7 +470,8 @@
       picture(champ && champ.icon, "pn-icon big", ""),
       h("div", { class: "cs-text" }, h("div", { class: "stat-label", text: cs.locked ? "Lezárt championöd" : "Kiválasztott championöd" }),
         h("div", { class: "stat-value", text: champ ? champ.name : "#" + cs.championId })),
-      h("a", { class: "btn primary", href: "#/build/" + cs.championId, text: "Build megnyitása" }));
+      h("a", { class: "btn primary", href: "#/build/" + cs.championId + (cs.position ? "/" + cs.position : "") + (cs.opponentGuess && cs.position ? "/" + cs.opponentGuess : ""),
+        text: "Build megnyitása" }));
   }
 
   async function renderTier() {
@@ -481,7 +482,7 @@
       h("button", { class: "chip" + (p.key === position.key ? " on" : ""), "aria-pressed": p.key === position.key ? "true" : "false",
         text: p.name, onclick: () => { tierPosition = p.key; render(); } })));
     const table = h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, ["#", "Champion", "Tier", "Winrate", "Pickrate", "Banrate"].map((t) => h("th", { scope: "col", text: t })))),
+      h("thead", {}, h("tr", {}, ["#", "Champion", "Tier", "Winrate", "Pickrate", "Banrate", "deeplol WR"].map((t) => h("th", { scope: "col", text: t })))),
       h("tbody", {}, position.champions.map((c) => h("tr", {},
         h("td", { class: "muted", text: c.rank }),
         h("td", {}, h("a", { class: "match-champ pn-link", href: "#/build/" + c.championId + "/" + position.key },
@@ -489,14 +490,15 @@
         h("td", {}, h("span", { class: "tier-badge t" + c.tierNumber, text: c.tier })),
         h("td", { text: c.winRate + "%" }),
         h("td", { class: "muted", text: c.pickRate + "%" }),
-        h("td", { class: "muted", text: c.banRate + "%" }))))));
+        h("td", { class: "muted", text: c.banRate + "%" }),
+        h("td", { class: "muted", text: c.otherWinRate !== null && c.otherWinRate !== undefined ? c.otherWinRate + "%" : "–" }))))));
     const old = data.version !== data.currentVersion
       ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " adatai látszanak." })
       : null;
     return page("Tier list", cs, old,
       h("div", { class: "card" },
         h("div", { class: "section-head" }, tabs,
-          h("span", { class: "muted small", text: "Forrás: " + data.source + " · " + data.region + " " + data.rank + " · patch " + data.version })),
+          h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version + (data.otherSource ? " · összevetve: " + data.otherSource : "") })),
         table));
   }
 
@@ -506,11 +508,28 @@
   }
 
   async function renderBuild(r) {
-    const data = await api("/api/builds/" + r.id);
+    const [data, cs] = await Promise.all([api("/api/builds/" + r.id + (r.vs ? "?vs=" + r.vs : "")),
+      api("/api/champ-select").catch(() => ({ inChampSelect: false }))]);
+    if (!championsCache) championsCache = (await api("/api/champions")).champions;
     if (!data.available || !data.lanes.length) {
       return page("Build", h("div", { class: "card empty", text: "Ehhez a championhöz most nincs build adat." }));
     }
     const lane = data.lanes.find((l) => l.key === r.sub) || data.lanes[0];
+    const buildHref = (vs) => "#/build/" + data.championId + "/" + lane.key + (vs ? "/" + vs : "");
+    const enemies = cs.inChampSelect && cs.championId === data.championId ? (cs.enemies || []) : [];
+    const champName = (id) => { const c = championsCache.find((x) => x.id === id); return c ? c.name : "#" + id; };
+    const champIcon = (id) => { const c = championsCache.find((x) => x.id === id); return c ? c.icon : null; };
+    const vsSelect = h("select", { class: "search vs-select", id: "vs-select", onchange: (e) => { location.hash = buildHref(parseInt(e.target.value, 10) || null); } },
+      h("option", { value: "", text: "Bármelyik ellenfél (általános)" }),
+      championsCache.filter((c) => c.id !== data.championId).map((c) => h("option", { value: c.id, text: c.name, selected: r.vs === c.id })));
+    const matchup = h("div", { class: "card matchup" },
+      h("div", { class: "section-head" }, h("h2", { text: "Ellenfél" }),
+        h("span", { class: "muted small", text: r.vs ? "A buildek ez ellen az ellenfél ellen játszott meccsekből jönnek (op.gg)." : "Válassz ellenfelet a matchup buildhez." })),
+      enemies.length ? h("div", { class: "chips" },
+        h("a", { class: "chip chip-link" + (!r.vs ? " on" : ""), href: buildHref(null), text: "Általános" }),
+        enemies.map((id) => h("a", { class: "chip chip-link vs-chip" + (r.vs === id ? " on" : ""), href: buildHref(id) },
+          picture(champIcon(id), "", ""), champName(id) + (cs.opponentGuess === id ? " (lane-ellenfél?)" : "")))) : null,
+      h("label", { for: "vs-select", class: "muted small", text: "Vagy válassz bármelyik championt:" }), vsSelect);
     let index = 0;
     const box = h("div", {});
     const onetricks = "https://www.onetricks.gg/champions/ranking/" + encodeURIComponent((data.championName || "").replace(/[^A-Za-z]/g, ""));
@@ -519,8 +538,9 @@
       const v = b.view;
       const status = h("div", { class: "muted small" });
       box.replaceChildren(h("div", { class: "card build-card" },
-        lane.builds.length > 1 ? h("div", { class: "chips" }, lane.builds.map((_, i) => h("button", {
-          class: "chip" + (i === index ? " on" : ""), text: (i + 1) + ". build", onclick: () => { index = i; draw(); } }))) : null,
+        h("div", { class: "chips" }, lane.builds.map((bb, i) => h("button", {
+          class: "chip" + (i === index ? " on" : ""), text: (i + 1) + ". " + bb.source + (bb.games ? " · " + bb.games.toLocaleString("hu-HU") + " meccs" : ""),
+          onclick: () => { index = i; draw(); } }))),
         h("h2", { text: "Rúnák" }),
         h("div", { class: "rune-cols" },
           h("div", {}, iconRow([v.primaryStyle], "style"), iconRow(v.primary)),
@@ -535,7 +555,7 @@
           h("button", { class: "btn primary", text: "Rúnák és spellek beállítása", onclick: async (e) => {
             e.currentTarget.disabled = true;
             try {
-              await api("/api/apply-build", { championId: data.championId, lane: lane.key, index });
+              await api("/api/apply-build", { championId: data.championId, lane: lane.key, index, opponent: r.vs || null });
               status.textContent = "Beállítva: a rúnaoldal „Proteus” néven került be.";
             } catch (err) { status.textContent = "Nem sikerült: indítsd el a League klienst, és légy champion selectben."; }
             e.currentTarget.disabled = false;
@@ -545,11 +565,12 @@
     }
     draw();
     const laneTabs = h("div", { class: "chips", role: "group", "aria-label": "Pozíció" }, data.lanes.map((l) =>
-      h("a", { class: "chip chip-link" + (l.key === lane.key ? " on" : ""), href: "#/build/" + data.championId + "/" + l.key, text: l.name })));
+      h("a", { class: "chip chip-link" + (l.key === lane.key ? " on" : ""), href: "#/build/" + data.championId + "/" + l.key + (r.vs ? "/" + r.vs : ""), text: l.name })));
     const oldBuild = data.version !== data.currentVersion
       ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " buildje látszik." })
       : null;
-    return page((data.championName || "Build") + " build", oldBuild,
+    const title = (data.championName || "Build") + (data.opponent ? " vs " + data.opponent.name : "") + " build";
+    return page(title, oldBuild, matchup,
       h("div", { class: "card build-head" }, picture(data.championIcon, "pn-icon big", ""), laneTabs,
         h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version })),
       box);

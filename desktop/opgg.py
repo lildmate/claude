@@ -204,8 +204,6 @@ class OpGG:
         core = _best(rows.get("core_items", []))
         starter = _best(rows.get("starter_items", []))
         boots = _best(rows.get("boots", []))
-        spells = _best(rows.get("summoner_spells", []) or rows.get("spells", []))
-        skills = _best(rows.get("skill_masteries", []) or rows.get("skills", []))
         items = list(core["ids"]) if core else []
         if boots and boots["ids"]:
             items.insert(1, boots["ids"][0])
@@ -215,8 +213,8 @@ class OpGG:
             "runes": runes[0]["runes"],
             "items": items,
             "startItems": list(starter["ids"]) if starter else [],
-            "spells": list(spells["ids"])[:2] if spells else [],
-            "skills": [{"Q": 1, "W": 2, "E": 3, "R": 4}[k] for k in (skills["skills"] if skills else []) if k != "R"][:3],
+            "spells": [],  # not in op.gg's tables: filled from deeplol.gg
+            "skills": [],
             "skillOrder": [],
             "games": runes[0]["games"],
             "coreWinRate": core["winRate"] if core else None,

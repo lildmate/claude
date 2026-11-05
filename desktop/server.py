@@ -19,7 +19,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 from utils.core.logging import get_logger
@@ -48,8 +48,9 @@ class AppAPI:
     def __init__(self, game: GameData, client: ClientData, favorites: Favorites, next_skins: NextSkins,
                  version: str = "", open_folder: Optional[Callable[[str], bool]] = None,
                  settings: Optional[dict] = None, patch_notes=None, mods=None,
-                 upload_dir: Optional[Path] = None, meta=None, champ_select=None):
+                 upload_dir: Optional[Path] = None, meta=None, champ_select=None, opgg=None):
         self.meta = meta
+        self.opgg = opgg
         self.champ_select = champ_select
         self.patch_notes = patch_notes
         self.mods = mods
@@ -105,25 +106,83 @@ class AppAPI:
         return {c["id"]: c for c in self.game.champions()}
 
     def tier_list(self) -> dict:
-        if not self.meta:
-            return {"available": False}
-        data = self.meta.tier_list()
+        """op.gg's tier list (the live patch), with deeplol.gg's win rate next to it."""
+        data = None
+        if self.opgg:
+            try:
+                data = self.opgg.tier_list()
+            except Exception as e:
+                log.warning("[Window] op.gg tier list failed: %s", e)
+        deeplol = None
+        if self.meta:
+            try:
+                deeplol = self.meta.tier_list()
+            except Exception as e:
+                log.warning("[Window] deeplol.gg tier list failed: %s", e)
+        if data is None:
+            if deeplol is None:
+                return {"available": False}
+            data, deeplol = deeplol, None
         champs = self._champion_index()
+        other = {}
+        if deeplol:
+            for position in deeplol["positions"]:
+                for entry in position["champions"]:
+                    other[(position["key"], entry["championId"])] = entry["winRate"]
         for position in data["positions"]:
             for entry in position["champions"]:
                 champ = champs.get(entry["championId"]) or {}
                 entry["name"] = champ.get("name") or f"#{entry['championId']}"
                 entry["icon"] = champ.get("icon")
-        return dict(data, available=True)
+                entry["otherWinRate"] = other.get((position["key"], entry["championId"]))
+        return dict(data, available=True, otherSource=(f"deeplol.gg {deeplol['version']}" if deeplol else None))
 
-    def builds(self, champion_id: int) -> dict:
-        if not self.meta:
+    def _lane_builds(self, champion_id: int, opponent_id: Optional[int] = None) -> Tuple[List[dict], str, str]:
+        """Per lane: op.gg's build (against the opponent when given), then deeplol.gg's."""
+        deeplol = {"lanes": [], "version": ""}
+        if self.meta:
+            try:
+                deeplol = self.meta.builds(champion_id)
+            except Exception as e:
+                log.warning("[Window] deeplol.gg build failed: %s", e)
+        positions = []
+        if self.opgg:
+            try:
+                positions = self.opgg.champion_positions().get(int(champion_id), [])
+            except Exception as e:
+                log.warning("[Window] op.gg positions failed: %s", e)
+        lane_names = {"Top": "Top", "Jungle": "Jungle", "Middle": "Mid", "Bot": "ADC", "Supporter": "Support"}
+        order = positions + [l["key"] for l in deeplol["lanes"] if l["key"] not in positions]  # noqa: E741
+        lanes, version = [], ""
+        for key in order:
+            builds = []
+            dl = next((l["builds"] for l in deeplol["lanes"] if l["key"] == key), [])  # noqa: E741
+            if self.opgg and key in positions:
+                try:
+                    op = self.opgg.build(champion_id, key, opponent_id)
+                except Exception as e:
+                    log.warning("[Window] op.gg build failed: %s", e)
+                    op = None
+                if op:
+                    version = version or op.get("version") or ""
+                    if dl:  # spells and skills only come from deeplol.gg
+                        op["spells"], op["skills"], op["skillOrder"] = dl[0]["spells"], dl[0]["skills"], dl[0]["skillOrder"]
+                    op["source"] = "op.gg" + (" · ellenfél ellen" if opponent_id else "")
+                    builds.append(op)
+            for b in dl:
+                builds.append(dict(b, source="deeplol.gg " + deeplol["version"]))
+            if builds:
+                lanes.append({"key": key, "name": lane_names.get(key, key), "builds": builds})
+        return lanes, version or deeplol.get("version", ""), deeplol.get("currentVersion") or version
+
+    def builds(self, champion_id: int, opponent_id: Optional[int] = None) -> dict:
+        if not self.meta and not self.opgg:
             return {"available": False}
-        data = self.meta.builds(champion_id)
+        lanes, version, current = self._lane_builds(champion_id, opponent_id)
         perks, styles = self.game.lookup("perks"), self.game.lookup("styles")
         items, spells = self.game.lookup("items"), self.game.lookup("spells")
         named = lambda table, ids: [dict(table.get(int(i), {"name": str(i), "icon": None}), id=int(i)) for i in ids]  # noqa: E731
-        for lane in data["lanes"]:
+        for lane in lanes:
             for build in lane["builds"]:
                 r = build["runes"]
                 build["view"] = {
@@ -136,25 +195,44 @@ class AppAPI:
                     "startItems": named(items, build["startItems"]),
                     "spells": named(spells, build["spells"]),
                 }
-        champ = self._champion_index().get(int(champion_id)) or {}
-        return dict(data, available=True, championName=champ.get("name") or "", championIcon=champ.get("icon"))
+        index = self._champion_index()
+        champ = index.get(int(champion_id)) or {}
+        opponent = index.get(int(opponent_id)) if opponent_id else None
+        return {"available": True, "source": "op.gg + deeplol.gg", "version": version, "currentVersion": current or version,
+                "championId": int(champion_id), "championName": champ.get("name") or "", "championIcon": champ.get("icon"),
+                "opponent": {"id": opponent["id"], "name": opponent["name"], "icon": opponent["icon"]} if opponent else None,
+                "lanes": lanes}
 
     def champ_select_state(self) -> dict:
         state = self.champ_select.locked() if self.champ_select else None
-        return {"inChampSelect": state is not None, **(state or {})}
+        if not state:
+            return {"inChampSelect": False}
+        guess = None
+        if self.opgg and state.get("enemies"):
+            try:
+                positions = self.opgg.champion_positions()
+                mine = state.get("position") or (positions.get(state["championId"]) or [None])[0]
+                main = [e for e in state["enemies"] if (positions.get(e) or [None])[0] == mine]
+                any_ = [e for e in state["enemies"] if mine in (positions.get(e) or [])]
+                guess = (main or any_ or [None])[0]
+                state["position"] = mine
+            except Exception as e:
+                log.debug("[Window] Opponent guess failed: %s", e)
+        return {"inChampSelect": True, **state, "opponentGuess": guess}
 
     def apply_build(self, body: dict) -> dict:
-        if not self.meta or not self.champ_select:
+        if not self.champ_select:
             raise ValueError("nincs build")
         champion_id, lane, index = int(body["championId"]), str(body["lane"]), int(body.get("index") or 0)
-        data = self.meta.builds(champion_id)
-        lane_data = next((l for l in data["lanes"] if l["key"] == lane), None)  # noqa: E741
+        opponent_id = int(body["opponent"]) if body.get("opponent") else None
+        lanes, _, _ = self._lane_builds(champion_id, opponent_id)
+        lane_data = next((l for l in lanes if l["key"] == lane), None)  # noqa: E741
         if not lane_data or index >= len(lane_data["builds"]):
             raise ValueError("nincs ilyen build")
         build = lane_data["builds"][index]
         name = (self._champion_index().get(champion_id) or {}).get("name") or str(champion_id)
         self.champ_select.apply_runes(f"{name} {lane_data['name']}", build["runes"])
-        if body.get("spells", True):
+        if body.get("spells", True) and build.get("spells"):
             self.champ_select.apply_spells(build["spells"])
         return {"ok": True}
 
@@ -392,9 +470,10 @@ class _Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/builds/"):
             try:
                 champion_id = int(path.rsplit("/", 1)[1])
+                opponent = int((query.get("vs") or ["0"])[0]) or None
             except ValueError:
                 return self._json(400, {"error": "bad id"})
-            return self._json(200, api.builds(champion_id))
+            return self._json(200, api.builds(champion_id, opponent))
         if path == "/api/champ-select":
             return self._json(200, api.champ_select_state())
         if path == "/api/patch-notes":

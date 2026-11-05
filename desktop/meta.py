@@ -32,6 +32,8 @@ POSITION_KEYS = {key for key, _ in POSITIONS}
 # deeplol's tier number -> the letter players know
 TIER_LETTERS = {0: "OP", 1: "S", 2: "A", 3: "B", 4: "C", 5: "D"}
 PAGE_PREFIX = "Proteus"
+# the client's assignedPosition -> Proteus position keys
+CLIENT_POSITIONS = {"top": "Top", "jungle": "Jungle", "middle": "Middle", "bottom": "Bot", "utility": "Supporter"}
 # The live patch is used as soon as it has any ranked entry (even a small sample)
 MIN_RANKED_ENTRIES = 1
 
@@ -180,8 +182,9 @@ class ChampSelect:
             for action in group:
                 if action.get("actorCellId") == me.get("cellId") and action.get("type") == "pick":
                     locked = bool(action.get("completed"))
+        enemies = [int(p["championId"]) for p in session.get("theirTeam") or [] if p.get("championId")]
         return {"championId": int(me["championId"]), "locked": locked,
-                "position": (me.get("assignedPosition") or "").lower()}
+                "position": CLIENT_POSITIONS.get((me.get("assignedPosition") or "").lower()), "enemies": enemies}
 
     def apply_runes(self, name: str, runes: dict) -> None:
         if not self._ok():

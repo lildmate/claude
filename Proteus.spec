@@ -138,6 +138,7 @@ hiddenimports = [
     'desktop',
     'desktop.data',
     'desktop.meta',
+    'desktop.opgg',
     'desktop.mods',
     'desktop.patchnotes',
     'desktop.server',

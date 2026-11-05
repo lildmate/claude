@@ -190,6 +190,10 @@ a.btn.primary { color: #141109; }
 .build-chip.style { font-weight: 600; border-color: var(--line-2); }
 .build-chip.shard img { width: 22px; height: 22px; }
 .rune-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.matchup { display: flex; flex-direction: column; gap: 10px; }
+.vs-chip { gap: 8px; padding-left: 4px; }
+.vs-chip img { width: 26px; height: 26px; border-radius: 50%; }
+.vs-select { max-width: 360px; }
 .skill-max { font: 700 18px var(--display); color: var(--gold); margin-right: 12px; }
 
 /* patch notes */

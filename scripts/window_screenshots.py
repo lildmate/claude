@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from desktop.data import ClientData, GameData  # noqa: E402
 from desktop.meta import DeepLol  # noqa: E402
+from desktop.opgg import OpGG  # noqa: E402
 from desktop.patchnotes import PatchNotes  # noqa: E402
 from desktop.server import AppAPI, AppServer  # noqa: E402
 from desktop.store import Favorites, NextSkins  # noqa: E402
@@ -28,9 +29,9 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.9.2", open_folder=lambda w: True,
+             version="1.10.0", open_folder=lambda w: True,
              settings={"get": lambda: {"windowOnStart": True}, "set": lambda b: None},
-             patch_notes=PatchNotes(), meta=DeepLol())
+             patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
 server = AppServer(api)
 server.start()
 
@@ -55,6 +56,9 @@ with sync_playwright() as p:
     page.goto(server.url.split("#")[0] + "#/build/103/Middle")
     page.wait_for_timeout(8000)
     page.screenshot(path=str(out / "6_build.png"), full_page=True)
+    page.goto(server.url.split("#")[0] + "#/build/122/Top/86")
+    page.wait_for_timeout(10000)
+    page.screenshot(path=str(out / "7_darius_vs_garen.png"), full_page=True)
     browser.close()
 server.stop()
 print("saved", sorted(x.name for x in out.iterdir()))
