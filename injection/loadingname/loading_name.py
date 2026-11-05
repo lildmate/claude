@@ -37,10 +37,11 @@ MOD_FOLDER = "PROTEUS-LoadingName"
 TABLE_PATH = Path("RAW") / "DATA" / "Menu" / "en_US" / "lol.stringtable"
 TABLE_HASH = 0x062D6ED714BFF7DF  # xxh64("data/menu/en_us/lol.stringtable"), fixed for every language
 RST_MASK = (1 << 38) - 1
-# The champion's record points here instead, for the chat and the name over its head. "proteus" is as long as "game",
-# so the record's text keeps its length and the file keeps its layout.
+# The champion's record points here instead, for the chat and the name over its head. "prts" (Proteus) is as long as
+# "game", so the record's text keeps its length and the file keeps its layout: a longer prefix gets cut off.
 RECORD_KEY = "game_character_displayname_"
-RECORD_KEY_OWN = "proteus_character_displayname_"
+RECORD_KEY_OWN = "prts_character_displayname_"
+assert len(RECORD_KEY_OWN) == len(RECORD_KEY), "the own key must be exactly as long as the game's"
 
 
 # --------------------------------------------------------------------------------------
