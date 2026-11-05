@@ -1,0 +1,25 @@
+name: Probe sites (temporary)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - scripts/probe_sites.py
+      - .github/workflows/probe-sites.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Probe
+        run: |
+          python3 -m pip install --quiet requests
+          python3 scripts/probe_sites.py
