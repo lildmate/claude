@@ -83,6 +83,23 @@ jobs:
           choco install innosetup --no-progress -y
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Party mode relay address
+        shell: pwsh
+        env:
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+        run: |
+          if (-not $env:RELAY_URL) {
+            Write-Host "::warning::No RELAY_URL secret: building without party mode (see SAJAT_VERZIO.md)"
+            exit 0
+          }
+          $url = $env:RELAY_URL.Trim().TrimEnd('/')
+          if ($url -notmatch '^wss://[A-Za-z0-9.-]+$') {
+            Write-Host "::error::RELAY_URL must look like wss://proteus-party-relay.<name>.workers.dev"
+            exit 1
+          }
+          "RELAY_URL = `"$url`"" | Out-File -FilePath party/network/relay_config.py -Encoding utf8
+          Write-Host "Party mode: on"
+
       - name: Build Proteus and the installer
         run: python scripts/build_all.py
 

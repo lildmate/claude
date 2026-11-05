@@ -77,11 +77,40 @@ repóból (git-tel: `git remote add upstream https://github.com/Alban1911/Rose`)
 - **Skinek:** a skin fájlokat továbbra is az eredeti
   `Alban1911/LeagueSkins` repóból tölti le. Ezt minden League patch után
   frissíteni kell; ha sajátot akarsz, forkold és írd át a `SKINS_REPO`-t.
-- **Party mode** (skinek megosztása barátokkal): egy Cloudflare Worker
-  relay kell hozzá, aminek a címe titkos és nincs a repóban
-  (`party/network/relay_config.py`). Saját relayhez deployold a
-  `relay-worker/` mappát (`npx wrangler deploy`), és hozd létre a fájlt:
-  `RELAY_URL = "wss://<a-te-workered>.workers.dev"`. Enélkül a build
-  csak figyelmeztet, minden más működik, csak a party mode nem.
+- **Party mode:** saját szerver kell hozzá, lásd lent.
 - **Riot szabályok:** a skin changerek a Riot felhasználási feltételeibe
   ütköznek, a fiók tiltásának kockázata a sajátodnál is ugyanúgy fennáll.
+
+## Party mode szerver beállítása
+
+A party mode (a barátaid is látják a skinedet) egy kis szerveren
+keresztül köti össze a játékosokat. Ez egy Cloudflare Worker, az ingyenes
+csomag bőven elég hozzá. Mindent böngészőben kell csinálni, telepíteni
+nem kell semmit.
+
+1. **Cloudflare fiók:** regisztrálj a https://dash.cloudflare.com/sign-up
+   oldalon (ingyenes, bankkártya nem kell).
+2. **Workers bekapcsolása:** a bal menüben nyisd meg a
+   **Compute (Workers)** → **Workers & Pages** oldalt egyszer. Ilyenkor kér
+   egy alnevet (pl. `lildmate`), ebből lesz a szerver címe:
+   `proteus-party-relay.lildmate.workers.dev`.
+3. **Account ID:** ugyanott, a Workers & Pages oldal jobb oldalán (vagy a
+   fiók főoldalán) van egy **Account ID**. Másold ki.
+4. **API token:** jobb felül profil ikon → **My Profile** → **API Tokens**
+   → **Create Token** → az **Edit Cloudflare Workers** sablonnál
+   **Use template** → az Account Resources-nál válaszd a fiókodat, a Zone
+   Resources-nál `All zones` → **Continue to summary** → **Create Token**.
+   Másold ki a tokent (csak egyszer mutatja meg).
+5. **Titkok a GitHubon:** a repóban **Settings** → **Secrets and
+   variables** → **Actions** → **New repository secret**, kettőt:
+   - `CLOUDFLARE_API_TOKEN` = a 4. lépés tokenje
+   - `CLOUDFLARE_ACCOUNT_ID` = a 3. lépés Account ID-ja
+6. **Szerver feltöltése:** **Actions** fül → **Party relay** → **Run
+   workflow**. Egy perc múlva a futás összefoglalójában ott a szerver címe,
+   pl. `wss://proteus-party-relay.lildmate.workers.dev`.
+7. **Cím a programba:** újabb secret: `RELAY_URL` = a 6. lépés címe.
+8. **Új verzió:** szólj Claude-nak (vagy emeld a verziószámot): a
+   következő build már party mode-dal készül.
+
+A barátaidnak is a Proteust kell használniuk, mert az eredeti Rose a saját
+szerverére csatlakozik, így a kettő nem látja egymást.

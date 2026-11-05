@@ -38,7 +38,7 @@ export default {
         return new Response('Invalid room key', { status: 400 });
       }
       if (!supported(url.searchParams.get('v'))) {
-        return new Response('Update Rose to use party mode', { status: 426 });
+        return new Response('Update Proteus to use party mode', { status: 426 });
       }
 
       const id = env.ROOM.idFromName(roomKey);
@@ -46,6 +46,6 @@ export default {
       return stub.fetch(request);
     }
 
-    return new Response('Rose Party Relay - WebSocket upgrade required', { status: 426 });
+    return new Response('Proteus Party Relay - WebSocket upgrade required', { status: 426 });
   },
 };
