@@ -232,3 +232,8 @@ a.btn.primary { color: #141109; }
 .rank-chip.rank-diamond { color: #7aa4f5; } .rank-chip.rank-master { color: #c27ae8; } .rank-chip.rank-grandmaster { color: #e8615a; }
 .rank-chip.rank-challenger { color: #f2d27a; }
 .rank-chip.on { color: var(--bg, #0b1220); }
+
+/* Game page: the live scoreboard */
+.live-items { display: flex; gap: 3px; flex-wrap: wrap; }
+.live-items img { width: 26px; height: 26px; border-radius: 4px; }
+tr.me td { background: rgba(230, 195, 106, 0.08); }

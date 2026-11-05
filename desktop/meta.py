@@ -155,11 +155,63 @@ def parse_build(raw: dict) -> Optional[dict]:
     }
 
 
+LIVE_CLIENT = "https://127.0.0.1:2999/liveclientdata/allgamedata"
+# the game's position names -> Proteus position keys
+LIVE_POSITIONS = {"TOP": "Top", "JUNGLE": "Jungle", "MIDDLE": "Middle", "BOTTOM": "Bot", "UTILITY": "Supporter"}
+
+
+def live_game(http_get: Optional[Callable] = None) -> Optional[dict]:
+    """The game you are in, from the game's own local Live Client Data API
+    (what the scoreboard shows): both teams with champion, position, level,
+    score and items. None when no game runs."""
+    try:
+        if http_get is None:
+            import urllib3
+
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            # the game serves it on localhost with its own certificate
+            response = requests.get(LIVE_CLIENT, timeout=2, verify=False)  # noqa: S501
+        else:
+            response = http_get(LIVE_CLIENT)
+        if response.status_code != 200:
+            return None
+        data = response.json()
+    except Exception:
+        return None
+    return parse_live_game(data)
+
+
+def parse_live_game(data: dict) -> Optional[dict]:
+    if not isinstance(data, dict) or not data.get("allPlayers"):
+        return None
+    me_name = (data.get("activePlayer") or {}).get("riotId") or (data.get("activePlayer") or {}).get("summonerName")
+    players = []
+    for p in data.get("allPlayers") or []:
+        raw = str(p.get("rawChampionName") or "")
+        scores = p.get("scores") or {}
+        players.append({
+            "alias": raw.rsplit("_", 1)[-1] if raw.startswith("game_character_displayname_") else "",
+            "championName": p.get("championName") or "",
+            "name": p.get("riotId") or p.get("summonerName") or "",
+            "team": p.get("team"),
+            "position": LIVE_POSITIONS.get(str(p.get("position") or "").upper()),
+            "level": p.get("level"),
+            "kills": scores.get("kills", 0), "deaths": scores.get("deaths", 0), "assists": scores.get("assists", 0),
+            "cs": scores.get("creepScore", 0),
+            "items": [int(i["itemID"]) for i in p.get("items") or [] if i.get("itemID")],
+            "dead": bool(p.get("isDead")),
+            "me": bool(me_name) and (p.get("riotId") or p.get("summonerName")) == me_name,
+        })
+    return {"gameTime": round(float((data.get("gameData") or {}).get("gameTime") or 0)), "players": players}
+
+
 class ChampSelect:
     """Applies a build in champion select through the client."""
 
-    def __init__(self, lcu):
+    def __init__(self, lcu, live=live_game):
         self.lcu = lcu
+        self.live = live
+        self.last_pick: Optional[dict] = None  # your champion select, kept for the game
 
     def _ok(self) -> bool:
         try:
@@ -212,7 +264,33 @@ class ChampSelect:
                 state["position"] = me["position"] if me else None
             if pick:
                 state.update(championId=pick["championId"], locked=pick["locked"], position=pick["position"] or state.get("position"))
+                self.last_pick = {"championId": pick["championId"], "position": state.get("position"),
+                                  "enemies": state.get("enemies") or []}
+        if state["phase"] in ("ChampSelect", "InProgress", "Reconnect", "GameStart"):
+            try:
+                state["currentRunes"] = self.current_runes()
+            except Exception:
+                state["currentRunes"] = None
+        if state["phase"] in ("InProgress", "Reconnect"):
+            state["live"] = self.live()
+            if self.last_pick:
+                state.setdefault("championId", self.last_pick["championId"])
+                state.setdefault("position", self.last_pick["position"])
         return state
+
+    def current_runes(self) -> Optional[dict]:
+        """The rune page set in the client now (what you go into the game with)."""
+        if not self._ok():
+            return None
+        page = self.lcu.get("/lol-perks/v1/currentpage", timeout=2)
+        if not isinstance(page, dict) or not page.get("selectedPerkIds"):
+            return None
+        perks = [int(i) for i in page["selectedPerkIds"]]
+        if len(perks) < 9:
+            return None
+        return {"name": page.get("name") or "", "runes": {
+            "primaryStyle": page.get("primaryStyleId"), "primary": perks[:4], "subStyle": page.get("subStyleId"),
+            "secondary": perks[4:6], "shards": perks[6:9]}}
 
     def apply_runes(self, name: str, runes: dict) -> None:
         if not self._ok():

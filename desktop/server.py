@@ -261,8 +261,37 @@ class AppAPI:
             position, guess = self._guess_opponent(hovered, state.get("position"), enemies)
             state.update(position=position, opponentGuess=guess, autoRunes=self._auto_status)
         index = self._champion_index()
+        live = state.get("live")
+        if live:
+            by_alias = {str(c.get("alias") or "").casefold(): cid for cid, c in index.items()}
+            by_name = {str(c.get("name") or "").casefold(): cid for cid, c in index.items()}
+            items = self.game.lookup("items")
+            for player in live["players"]:
+                cid = by_alias.get(player["alias"].casefold()) or by_name.get(player["championName"].casefold())
+                player["championId"] = cid
+                player["itemViews"] = [dict(items.get(i, {"name": str(i), "icon": None}), id=i) for i in player["items"]]
+            me = next((p for p in live["players"] if p["me"]), None)
+            if me:
+                state["championId"] = me["championId"] or state.get("championId")
+                state["position"] = me["position"] or state.get("position")
+                rivals = [p for p in live["players"] if p["team"] != me["team"]]
+                lane = next((p for p in rivals if p["position"] and p["position"] == state["position"]), None)
+                state["enemies"] = enemies = [p["championId"] for p in rivals if p["championId"]]
+                state["opponentGuess"] = lane["championId"] if lane else self._guess_opponent(
+                    state["championId"], state["position"], enemies)[1]
+        current = state.get("currentRunes")
+        if current and current.get("runes"):
+            perks, styles = self.game.lookup("perks"), self.game.lookup("styles")
+            view = lambda table, ids: [dict(table.get(int(i), {"name": str(i), "icon": None}), id=int(i)) for i in ids if i]  # noqa: E731
+            r = current["runes"]
+            current["view"] = {"primaryStyle": (view(styles, [r["primaryStyle"]]) or [None])[0],
+                               "subStyle": (view(styles, [r["subStyle"]]) or [None])[0],
+                               "primary": view(perks, r["primary"]), "secondary": view(perks, r["secondary"]),
+                               "shards": view(perks, r["shards"])}
         named = lambda cid: {"id": cid, "name": (index.get(cid) or {}).get("name") or f"#{cid}", "icon": (index.get(cid) or {}).get("icon")}  # noqa: E731
-        state["champions"] = {str(c): named(c) for c in set(enemies) | {a.get("championId") for a in state.get("allies") or []} | {state.get("championId")} if c}
+        ids = set(enemies) | {a.get("championId") for a in state.get("allies") or []} | {state.get("championId")}
+        ids |= {p.get("championId") for p in (live or {}).get("players") or []}
+        state["champions"] = {str(c): named(c) for c in ids if c}
         return state
 
     def counters(self, champion_id: int, position: str, rank: Optional[str] = None) -> dict:

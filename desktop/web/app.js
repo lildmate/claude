@@ -531,7 +531,8 @@
         h("div", { class: "stat-value gold", text: clock(g.timeInQueue) }),
         h("div", { class: "stat-sub", text: g.estimatedQueueTime ? "Becsült várakozás: " + clock(g.estimatedQueueTime) : "" })));
     }
-    if (g.phase !== "ChampSelect") {
+    const inGame = ["InProgress", "Reconnect", "GameStart"].includes(g.phase);
+    if (g.phase !== "ChampSelect" && !(inGame && g.championId)) {
       return page("Game", h("div", { class: "card empty", text: GAME_PHASES[g.phase] || "Nem vagy játékban." }));
     }
     const status = h("div", { class: "muted small" });
@@ -541,17 +542,21 @@
     const head = h("div", { class: "card cs-card" },
       picture(me && me.icon, "pn-icon big", ""),
       h("div", { class: "cs-text" },
-        h("div", { class: "stat-label", text: me ? (g.locked ? "Lezárt championöd" : "Kiválasztott championöd") : "Még nem választottál" }),
+        h("div", { class: "stat-label", text: inGame ? "Játékban" + (g.live ? " · " + clock(g.live.gameTime) : "") : me ? (g.locked ? "Lezárt championöd" : "Kiválasztott championöd") : "Még nem választottál" }),
         h("div", { class: "stat-value", text: (me ? me.name : "–") + (g.position ? " · " + ({ Top: "Top", Jungle: "Jungle", Middle: "Mid", Bot: "ADC", Supporter: "Support" }[g.position] || g.position) : "") }),
-        h("div", { class: "stat-sub", text: auto ? (auto.ok ? "Rúnák és spellek automatikusan beállítva (" + auto.source + ")" : "Az automatikus rúnabeállítás nem sikerült: " + auto.error) : (g.locked ? "" : "Lezáráskor a rúnák és a spellek automatikusan bekerülnek.") })),
+        h("div", { class: "stat-sub", text: inGame ? "" : auto ? (auto.ok ? "Rúnák és spellek automatikusan beállítva (" + auto.source + ")" : "Az automatikus rúnabeállítás nem sikerült: " + auto.error) : (g.locked ? "" : "Lezáráskor a rúnák és a spellek automatikusan bekerülnek.") })),
       me ? h("a", { class: "btn", href: "#/build/" + me.id + (g.position ? "/" + g.position : "") + (opponent && g.position ? "/" + opponent.id : ""), text: "Teljes build" }) : null);
     const enemies = h("div", { class: "card" }, h("div", { class: "section-head" }, h("h2", { text: "Ellenfelek" }),
-      h("span", { class: "muted small", text: opponent ? "A lane-ellenfeled valószínűleg " + opponent.name + "." : "" })),
+      h("span", { class: "muted small", text: opponent ? (inGame && g.live ? "A lane-ellenfeled: " : "A lane-ellenfeled valószínűleg ") + opponent.name + "." : "" })),
       (g.enemies || []).length
         ? h("div", { class: "chips" }, g.enemies.map((id) => h("span", { class: "chip chip-link vs-chip" + (g.opponentGuess === id ? " on" : "") }, picture(champ(id).icon, "", ""), champ(id).name)))
         : h("div", { class: "muted small", text: "Még nem látszik az ellenfél csapata." }));
-    const parts = [head, enemies];
-    if (opponent) {
+    // the rune page set in the client: what you go into the game with
+    const current = g.currentRunes && g.currentRunes.view
+      ? runePageCard("Beállított rúnáid" + (g.currentRunes.name ? " · " + g.currentRunes.name : ""), g.currentRunes.view, null)
+      : null;
+    const parts = inGame ? [head, current, scoreboard(g, champ)] : [head, current, enemies];
+    if (opponent && !inGame) {
       try {
         const c = await cached("/api/counters/" + opponent.id + "?pos=" + (g.position || "") + "&rank=" + rank);
         if (c.available && c.counters.length) {
@@ -578,6 +583,16 @@
             e.currentTarget.disabled = false;
           };
           const pages = build.runePagesView && build.runePagesView.length ? build.runePagesView : [build.view];
+          if (inGame) {
+            parts.push(h("div", { class: "card" }, h("div", { class: "section-head" }, h("h2", { text: "Build" + (opponent ? " " + opponent.name + " ellen" : "") }),
+              h("span", { class: "muted small", text: build.source + (build.games ? " · " + build.games + " meccs" : "") })),
+              h("div", { class: "muted small", text: "Kezdés" }), iconRow(build.view.startItems),
+              h("div", { class: "muted small", text: "Tárgyak sorrendben" }), iconRow(build.view.items),
+              h("div", { class: "muted small", text: "Skill sorrend" }),
+              h("div", { class: "build-row" }, h("span", { class: "skill-max", text: build.skills.map((k) => SKILL_KEYS[k] || k).join(" › ") }),
+                h("span", { class: "muted small", text: build.skillOrder.map((k) => SKILL_KEYS[k] || k).join(" ") }))));
+            return page("Game", ...parts);
+          }
           parts.push(h("div", { class: "section-head" }, h("h2", { text: "A két legjobb rúna" + (opponent ? " " + opponent.name + " ellen" : "") }),
             h("span", { class: "muted small", text: build.source + (build.games ? " · " + build.games + " meccs" : "") })));
           pages.slice(0, 2).forEach((v, i) => parts.push(runePageCard((i + 1) + ". rúnaoldal" + (v.games ? " · " + v.games + " meccs" : "") + (v.pickRate ? " · " + Math.round(v.pickRate * 100) + "% pick" : ""), v, apply(i))));
@@ -586,6 +601,26 @@
       } catch (e) { /* no build */ }
     }
     return page("Game", ...parts);
+  }
+
+  // both teams in the game you are in (the game's own Live Client Data)
+  function scoreboard(g, champ) {
+    if (!g.live) return h("div", { class: "card empty", text: "A meccs adatai a betöltés után jelennek meg." });
+    const me = g.live.players.find((p) => p.me) || {};
+    const team = (mine) => g.live.players.filter((p) => (p.team === me.team) === mine);
+    const row = (p) => h("tr", { class: p.me ? "me" : "" },
+      h("td", {}, h("span", { class: "match-champ" }, picture(p.championId ? champ(p.championId).icon : null, "", ""),
+        h("span", { text: (p.championId ? champ(p.championId).name : p.championName) + (p.dead ? " (halott)" : "") }))),
+      h("td", { class: "muted", text: ({ Top: "Top", Jungle: "Jungle", Middle: "Mid", Bot: "ADC", Supporter: "Support" }[p.position] || "") }),
+      h("td", { text: String(p.level || "") }),
+      h("td", { text: p.kills + " / " + p.deaths + " / " + p.assists }),
+      h("td", { class: "muted", text: String(p.cs) }),
+      h("td", {}, h("div", { class: "live-items" }, p.itemViews.map((i) => picture(i.icon, "", i.name)))));
+    const table = (title, players) => h("div", { class: "card" }, h("h2", { text: title }),
+      h("div", { class: "table-wrap" }, h("table", {},
+        h("thead", {}, h("tr", {}, ["Champion", "Lane", "Szint", "K / D / A", "CS", "Tárgyak"].map((t) => h("th", { scope: "col", text: t })))),
+        h("tbody", {}, players.map(row)))));
+    return h("div", {}, table("Csapatod", team(true)), table("Ellenfelek", team(false)));
   }
   setInterval(() => { if (route().page === "game" && !document.hidden) render(); }, 3000);
 
