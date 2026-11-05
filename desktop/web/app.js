@@ -718,7 +718,7 @@
     };
     function draw() {
       const tier = current ? current.tier : null;
-      card.replaceChildren(
+      card.replaceChildren(...[
         h("div", { class: "section-head" }, h("h2", { text: "Profil szerkesztése: megjelenített rang" }),
           h("span", { class: "muted small", text: "Csak a Proteus-t használók látják (te és a party mode barátaid). A Riot és a többi játékos a valódit látja." })),
         h("div", { class: "chips", role: "group", "aria-label": "Rang" },
@@ -729,7 +729,7 @@
         tier && !APEX.includes(tier) ? h("div", { class: "chips", role: "group", "aria-label": "Divízió" },
           ["IV", "III", "II", "I"].map((d) => h("button", { class: "chip" + (current.division === d ? " on" : ""), text: d,
             onclick: () => save({ tier, division: d }) }))) : null,
-        h("div", { class: "muted small", text: "A lobbyban és a profilodon látszik. A betöltőképernyőt a játék rajzolja, azt ez nem változtatja meg." }));
+        h("div", { class: "muted small", text: "A lobbyban és a profilodon látszik. A betöltőképernyőt a játék rajzolja, azt ez nem változtatja meg." })].filter(Boolean));
     }
     draw();
     return card;

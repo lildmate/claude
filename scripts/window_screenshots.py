@@ -30,7 +30,7 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.12.0", open_folder=lambda w: True,
+             version="1.12.1", open_folder=lambda w: True,
              settings={"get": lambda: dict(settings), "set": settings.update},
              patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
 server = AppServer(api)
