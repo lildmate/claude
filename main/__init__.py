@@ -547,6 +547,21 @@ def _setup_pengu_and_injection(lcu, injection_manager, activate_pengu: bool = Tr
     injection_manager.initialize_when_ready()
 
 
+def _start_window(lcu, tray_manager) -> None:
+    """Start the Proteus window's server, and open the window unless turned off."""
+    try:
+        import desktop
+
+        window = desktop.start(lcu, APP_VERSION)
+        if window is None:
+            return
+        tray_manager.open_window_callback = window.open
+        if desktop.open_on_start():
+            window.open()
+    except Exception as e:
+        log.error(f"[Window] The Proteus window could not start: {e}")
+
+
 def _update_registry_version() -> None:
     """Update the DisplayVersion in Windows registry to match the current app version.
 
@@ -655,6 +670,10 @@ def run_league_unlock(args: Optional[argparse.Namespace] = None,
     
     # Initialize core components
     lcu, skin_scraper, state, injection_manager = initialize_core_components(args, injection_threshold)
+
+    # The Proteus window (skin library, profile, settings): its server runs from
+    # the start, the window opens now unless turned off, and from the tray icon
+    _start_window(lcu, tray_manager)
     
     # Configure skin writing based on the final injection threshold (seconds → ms)
     state.skin_write_ms = max(0, int(injection_manager.injection_threshold * 1000))

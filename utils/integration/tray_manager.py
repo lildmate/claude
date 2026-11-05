@@ -35,6 +35,8 @@ class TrayManager:
         """
         self.quit_callback = quit_callback
         self.restart_callback = restart_callback
+        # Opens the Proteus window; set once its server runs (desktop.start)
+        self.open_window_callback: Optional[Callable] = None
         self.icon = None
         self.tray_thread = None
         self._stop_event = threading.Event()
@@ -174,6 +176,17 @@ class TrayManager:
         """Handle left click on tray icon - do nothing"""
         # Left click does nothing, only right click shows menu
         pass
+
+    def _on_open_window(self, icon, item):
+        """Open the Proteus window (also the left click: the menu's default item)."""
+        log.info("Proteus window requested from system tray")
+        if not self.open_window_callback:
+            log.warning("The Proteus window is not available")
+            return
+        try:
+            self.open_window_callback()
+        except Exception as e:
+            log.error(f"Failed to open the Proteus window: {e}")
     
     def _on_settings(self, icon, item):
         """Open the injection threshold settings dialog."""
@@ -231,6 +244,7 @@ class TrayManager:
         return pystray.Menu(
             pystray.MenuItem(f"Proteus v{APP_VERSION}", None, enabled=False),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Proteus megnyitása", self._on_open_window, default=True),
             pystray.MenuItem("Open Mods Folder", self._on_open_mods),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Restart", self._on_restart),

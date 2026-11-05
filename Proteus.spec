@@ -28,6 +28,12 @@ else:
 
 # Icons have been moved to assets folder, no separate icons directory needed
 
+# The Proteus window's page (desktop.server.web_dir looks under _internal/desktop/web)
+if not (Path('desktop') / 'web' / 'index.html').is_file():
+    raise SystemExit("[ERROR] desktop/web/index.html is missing: the Proteus window would be blank")
+datas += [('desktop/web', 'desktop/web')]
+print("[OK] Proteus window page bundled (desktop/web)")
+
 # Injection tools - separate binaries (.exe, .dll) from data files (.bat)
 import os
 
@@ -128,6 +134,12 @@ else:
 
 # Hidden imports - modules PyInstaller might not detect
 hiddenimports = [
+    # The Proteus window
+    'desktop',
+    'desktop.data',
+    'desktop.server',
+    'desktop.store',
+    'desktop.window',
     # Main package modules
     'main',
     'main.setup',

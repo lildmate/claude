@@ -14,6 +14,8 @@ Bármelyik skin, bármelyik championnel.
 2. Futtasd a `Proteus_Setup_<verzió>.exe`-t. Windows figyelmeztetésnél: *További információ → Futtatás mindenképp*.
 3. Indítsd el a Proteust, utána a League-et.
 
+A Proteus ablakát (skin könyvtár, profil, beállítások) a tálcaikonra kattintva is megnyithatod.
+
 Hiba esetén a naplók: `%LOCALAPPDATA%\Rose\logs`
 
 <sub>MIT licenc · [LICENSE](LICENSE) · [Karbantartás](KARBANTARTAS.md)</sub>

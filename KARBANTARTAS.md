@@ -32,6 +32,14 @@ telepítőbe. A build magától is lefuttatja, a CI pedig szól, ha elmaradt.
 - **Szövegek, fordítások:** `Pengu Loader/plugins/PROTEUS-I18n/locales/`
   (a kulcs az angol szöveg, az érték a fordítás).
 
+## A Proteus ablak
+
+A `desktop/` csomag: egy helyi szerver (csak 127.0.0.1, véletlen kulccsal)
+és a felület (`desktop/web/`: HTML, CSS, JS, build nélkül). Az ablak Edge
+alkalmazás módban nyílik, a felhasználó jogaival. Adatok: a League kliens,
+ha fut, különben a CommunityDragon (skinek, képek). A „következő meccsre”
+választott skin a champion select historic fájljába kerül.
+
 ## Új verzió kiadása
 
 A buildet a GitHub csinálja Windows gépen (`.github/workflows/release.yml`).
