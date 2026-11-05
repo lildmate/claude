@@ -130,7 +130,7 @@ class FakeBridge:
 
 
 class LtfSessionTestCase(unittest.TestCase):
-    """Shared setup: a temp Rose tree and a faked bridge/launcher"""
+    """Shared setup: a temp Anna tree and a faked bridge/launcher"""
 
     def setUp(self):
         temp_dir = tempfile.TemporaryDirectory()
@@ -192,7 +192,7 @@ class LtfSessionTestCase(unittest.TestCase):
         return name
 
     def launched(self, pid=4242):
-        """Patches for an LTK Manager Rose starts through the launcher."""
+        """Patches for an LTK Manager Anna starts through the launcher."""
         return (
             patch.object(overlay_manager, "find_bridge", return_value=None),
             patch.object(overlay_manager.subprocess, "run",
@@ -228,8 +228,8 @@ class InjectionSessionTests(LtfSessionTestCase):
         self.assertIn("import", names)
         self.assertIn("start_patcher", names)
         self.assertIn("stop_patcher", names)
-        self.assertNotIn("kill", names)  # Rose did not start this LTK Manager
-        self.assertEqual(self.bridge.library_entries, [])  # Rose's mod was removed
+        self.assertNotIn("kill", names)  # Anna did not start this LTK Manager
+        self.assertEqual(self.bridge.library_entries, [])  # Anna's mod was removed
         self.assertEqual(self.reported_codes(), [])
         self.assertEqual(self.state()["installed"], {})
         self.assertIn("import_duration", self.overlay.last_injection_timing)
@@ -365,7 +365,7 @@ class InjectionSessionTests(LtfSessionTestCase):
         with patch.object(FakeBridge, "import_fantome", answer_with_users_mod):
             self.overlay.mk_run_overlay([self.make_mod()], stop_callback=lambda: True)
 
-        # The user's mod is never removed with Rose's
+        # The user's mod is never removed with Anna's
         self.assertNotIn(("uninstall", "user-mod"), self.bridge.calls)
         self.assertEqual([e["id"] for e in self.bridge.library_entries], ["user-mod"])
 
@@ -554,7 +554,7 @@ class InjectionSessionTests(LtfSessionTestCase):
 
 
 class LibraryOwnershipTests(LtfSessionTestCase):
-    """Rose only ever removes or keeps off what it changed itself"""
+    """Anna only ever removes or keeps off what it changed itself"""
 
     user_mod = {"id": "user-mod", "name": "Eternal Aspect Leona", "displayName": "Eternal Aspect Leona", "enabled": True}
 
@@ -692,7 +692,7 @@ class EarlySessionTests(LtfSessionTestCase):
 
         names = self.bridge.command_names()
         self.assertIn("stop_patcher", names)
-        self.assertNotIn("kill", names)  # a manager Rose merely attached to stays up
+        self.assertNotIn("kill", names)  # a manager Anna merely attached to stays up
 
     def test_discard_closes_a_manager_rose_launched(self):
         no_bridge, run = self.launched()
@@ -872,7 +872,7 @@ class PatcherStatusParsingTests(LtfSessionTestCase):
 
     def test_an_overlay_disabled_by_the_integrity_check_is_reported_once(self):
         """#432: LTK Manager turned the overlay off for a custom skin made of
-        another skin's files, while Rose logged the injection as completed"""
+        another skin's files, while Anna logged the injection as completed"""
         session = self._session()
         FakeBridge.patcher_statuses = [status(session={"log": '2026-11-05T07:07:34.554873Z  INFO ltk_manager_runtime::patcher::injector: [ltk-dll pid=19852 tid=9656 ERROR] ltk_patcher_dll::verify: overlay verification failed, disabling overlay: wad data/final/champions/zed.wad.client: base-skin check: skin0 is another skin: SkinAudioProperties.BankUnits.Name names zedSkin<n>' + "\n" + '2026-11-05T07:07:35.337701Z  INFO ltk_manager_core::patching::pipeline: Incident recorded: Skinhack Detection id=2026-11-05T10-07-32 verdict=SkinhackDetected'})]
 

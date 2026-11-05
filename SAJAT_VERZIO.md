@@ -1,6 +1,6 @@
-# Saját verzió – hogyan működik
+# Anna – saját verzió
 
-Ez a repó a [Rose](https://github.com/Alban1911/Rose) saját példánya
+Az **Anna** a [Rose](https://github.com/Alban1911/Rose) saját példánya
 (az upstream `db1f7e0` commitjából, 1.5.2-es verzió). Az eredeti MIT licences,
 ezért szabadon módosítható és terjeszthető, csak a `LICENSE` fájlban lévő
 eredeti copyright sornak maradnia kell.
@@ -36,10 +36,17 @@ a CI pedig szól, ha elfelejtetted.)
   (színek, méretek) ezekben a fájlokban CSS-ként vannak, pl. a beállítások
   panelé a `ROSE-SettingsPanel/index.js` elején (`.settings-link` stb.).
 - **Fordítások / szövegek:** `Pengu Loader/plugins/ROSE-I18n/`.
-- **App neve:** a „Rose” név sok helyen szerepel (exe neve, telepítő,
-  felhasználói mappa, Windows mutex). Átnevezni lehet, de egyszerre több
-  helyen kell, és a régi telepítéssel ütközhet – ha szeretnéd, ezt külön
-  meg tudjuk csinálni.
+- **App neve: Anna.** Minden látható helyen ez szerepel: tálca, ablakok,
+  hibaüzenetek, a League kliensben megjelenő szövegek (mind a 21 nyelven),
+  `Anna.exe`, `Anna_Setup_<verzió>.exe`, Program Files\Anna, saját
+  Windows-azonosító (AppId), így külön appként települ.
+  Belül néhány dolog **szándékosan Rose maradt**:
+  - az adatmappa `%LOCALAPPDATA%\Rose` – a Pengu Loader előre lefordított
+    `core.dll`-je fixen ezt olvassa, átnevezve a kliensben nem jelenne meg;
+  - a pluginmappák (`ROSE-*`) és a belső kódnevek (pl. `window.RoseI18n`);
+  - a „csak egy példány futhat” azonosító, így az Anna és az eredeti Rose
+    nem fut egyszerre (ugyanazt az adatmappát használnák).
+  Ha az eredeti Rose fel van telepítve, előbb azt távolítsd el.
 
 ## Új verzió kiadása (te frissítesz)
 
@@ -58,7 +65,7 @@ release**-ét, és ha újabb, felajánlja a frissítést.
 3. GitHubon csinálj egy release-t, aminek a **tag neve pontosan a
    verziószám** (`1.5.3`, `v` nélkül), és töltsd fel hozzá:
    - `installer/update_package_1.5.3.zip` – ezt tölti le az auto-updater
-   - `installer/Rose_Setup_1.5.3.exe` – új telepítéshez
+   - `installer/Anna_Setup_1.5.3.exe` – új telepítéshez
 
 Az eredeti Rose frissítései innentől **nem jönnek automatikusan**. Ha
 szeretnél átvenni valamit tőlük, azt kézzel kell behúzni az upstream
@@ -74,6 +81,6 @@ repóból (git-tel: `git remote add upstream https://github.com/Alban1911/Rose`)
   (`party/network/relay_config.py`). Saját relayhez deployold a
   `relay-worker/` mappát (`npx wrangler deploy`), és hozd létre a fájlt:
   `RELAY_URL = "wss://<a-te-workered>.workers.dev"`. Enélkül a build
-  figyelmeztet, a party mode pedig nem fog működni.
+  csak figyelmeztet, minden más működik, csak a party mode nem.
 - **Riot szabályok:** a skin changerek a Riot felhasználási feltételeibe
   ütköznek, a fiók tiltásának kockázata a sajátodnál is ugyanúgy fennáll.

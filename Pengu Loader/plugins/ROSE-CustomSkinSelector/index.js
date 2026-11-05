@@ -8,7 +8,7 @@
   const REQUEST_TYPE = "request-skin-mods";
   const BUTTON_ICON_ASSET_PATH = "button-skin.png";
 
-  // Rose's menu language (ROSE-I18n); English until it has loaded
+  // Anna's menu language (ROSE-I18n); English until it has loaded
   const t = (text, vars) =>
     window.RoseI18n
       ? window.RoseI18n.t(text, vars)
@@ -765,7 +765,7 @@
     if (!skinItem) return;
 
     // Some League builds nest the thumbnail wrapper inside the selection
-    // item. Keep one Rose button per item instead of attaching two buttons to
+    // item. Keep one Anna button per item instead of attaching two buttons to
     // the same skin during a mutation-observer scan.
     if (skinItem.classList.contains("thumbnail-wrapper")) {
       const parentItem = skinItem.closest(".skin-selection-item");

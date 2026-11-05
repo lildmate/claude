@@ -100,7 +100,7 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
 
     def test_legacy_cleanup_and_packaging_exclusions_are_wired(self):
         source = Path(pengu_loader.__file__).read_text(encoding='utf-8')
-        spec_source = Path('Rose.spec').read_text(encoding='utf-8')
+        spec_source = Path('Anna.spec').read_text(encoding='utf-8')
         program_source = Path(
             'vendor/PenguLoader-1.1.6/loader/Program.cs'
         ).read_text(encoding='utf-8')
@@ -209,8 +209,8 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
     def test_rose_loader_left_active_is_unloaded_on_exit(
         self, activate, deactivate, restart_client, _running, _status, _available
     ):
-        # --status reports only this loader's own core.dll: an earlier Rose left it
-        # on without a session, so this Rose owns it and unloads it when it quits
+        # --status reports only this loader's own core.dll: an earlier Anna left it
+        # on without a session, so this Anna owns it and unloads it when it quits
         self.assertTrue(pengu_loader.activate_on_start())
         activate.assert_not_called()
         state = json.loads(self.session_file.read_text(encoding='utf-8'))
@@ -376,7 +376,7 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
         self, activate, restart_client, _running, _status, _available
     ):
         # The client may have started while the hook was off, or still run the
-        # plugins of a closed Rose: it loads Rose's only when it starts
+        # plugins of a closed Anna: it loads Anna's only when it starts
         self.assertTrue(pengu_loader.activate_on_start())
         activate.assert_not_called()
         restart_client.assert_called_once_with()
@@ -396,7 +396,7 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
     @patch.object(pengu_loader.subprocess, 'run')
     def test_deactivate_leaves_another_loaders_hook_on(self, run, _available):
         # --uninstall would still switch off the config.ini that loader's core.dll reads
-        other_core = Path(self.temp_dir.name) / 'Other Rose' / 'core.dll'
+        other_core = Path(self.temp_dir.name) / 'Other Anna' / 'core.dll'
         with patch.object(pengu_loader, '_registered_pengu_core', return_value=other_core):
             self.assertTrue(pengu_loader.deactivate())
         run.assert_not_called()
@@ -407,7 +407,7 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
     @patch.object(pengu_loader.subprocess, 'run')
     def test_shutdown_leaves_another_loaders_hook_on(self, run, restart_client, _running, _available):
         pengu_loader._write_session(False, True)
-        other_core = Path(self.temp_dir.name) / 'Other Rose' / 'core.dll'
+        other_core = Path(self.temp_dir.name) / 'Other Anna' / 'core.dll'
         with patch.object(pengu_loader, '_registered_pengu_core', return_value=other_core):
             self.assertTrue(pengu_loader.restore_after_rose())
         run.assert_not_called()
@@ -415,7 +415,7 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
         self.assertFalse(self.session_file.exists())
 
     def test_the_bundled_copy_is_not_another_loader(self):
-        bundled = Path(self.temp_dir.name) / 'Program Files' / 'Rose' / '_internal' / 'Pengu Loader'
+        bundled = Path(self.temp_dir.name) / 'Program Files' / 'Anna' / '_internal' / 'Pengu Loader'
         with patch.object(pengu_loader, '_get_bundled_pengu_dir', return_value=bundled), \
                 patch.object(pengu_loader, '_registered_pengu_core', return_value=bundled / 'core.dll'):
             self.assertIsNone(pengu_loader._hook_of_another_loader())
@@ -426,12 +426,12 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
     @patch.object(pengu_loader.subprocess, 'run')
     def test_shutdown_removes_a_hook_left_on_the_bundled_copy(self, run, remove_hook, _running, _available):
         # The loader's --uninstall leaves a hook on another core.dll and --status
-        # calls it inactive: the hook stayed while Rose thought it was gone
+        # calls it inactive: the hook stayed while Anna thought it was gone
         run.side_effect = [
             self._result([], stdout='Pengu has been deactivated.'),
             self._result([], code=1, stdout='Pengu is currently INACTIVE.'),
         ]
-        bundled = Path(self.temp_dir.name) / 'Program Files' / 'Rose' / '_internal' / 'Pengu Loader'
+        bundled = Path(self.temp_dir.name) / 'Program Files' / 'Anna' / '_internal' / 'Pengu Loader'
         pengu_loader._write_session(False, True)
         with patch.object(pengu_loader, '_get_bundled_pengu_dir', return_value=bundled), \
                 patch.object(pengu_loader, '_registered_pengu_core', return_value=bundled / 'core.dll'):
@@ -454,10 +454,10 @@ class PenguLoaderIntegrationTests(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'win32', 'a loaded DLL is locked on Windows')
 class RuntimeLoaderSyncTests(unittest.TestCase):
-    """Rose copies its loader to a writable folder at start. With the client
-    open, core.dll is loaded there and can't be replaced: Rose ran the bundled
+    """Anna copies its loader to a writable folder at start. With the client
+    open, core.dll is loaded there and can't be replaced: Anna ran the bundled
     copy instead, took its own runtime loader for another one, and left its
-    hook on at exit, every time the client was open when Rose started"""
+    hook on at exit, every time the client was open when Anna started"""
 
     def setUp(self):
         temp_dir = tempfile.TemporaryDirectory()
@@ -491,7 +491,7 @@ class RuntimeLoaderSyncTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == 'win32', 'config.ini is shared through the Windows INI API')
 class ConfigIniTests(unittest.TestCase):
     """config.ini is read by core.dll and written by the Pengu loader through
-    the Windows INI API (ANSI code page), and by Rose in Python"""
+    the Windows INI API (ANSI code page), and by Anna in Python"""
 
     def setUp(self):
         temp_dir = tempfile.TemporaryDirectory()

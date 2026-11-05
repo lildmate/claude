@@ -21,7 +21,7 @@ log = get_logger()
 TOKEN_PREFIX = "ROSE:"
 # Token version (v2 = WebSocket relay, no IP/port needed)
 TOKEN_VERSION = 2
-# Rose 1.3.1 and older reject tokens older than this, so tokens are
+# Anna 1.3.1 and older reject tokens older than this, so tokens are
 # re-encoded with a fresh timestamp whenever they're shown. Newer versions
 # accept any age: the party key is kept across sessions, so a token stays a
 # valid address for its owner's room.
@@ -146,7 +146,7 @@ class PartyToken:
         """Inflate a token payload, never past the largest known payload size.
 
         The stream must end exactly where the data does: a truncated stream,
-        or bytes after its end, is not a token Rose made.
+        or bytes after its end, is not a token Anna made.
         """
         limit = max(TOKEN_PAYLOAD_SIZES.values())
         inflater = zlib.decompressobj()

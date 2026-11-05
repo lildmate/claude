@@ -11,7 +11,7 @@ from injection.tools.tools_manager import ToolsManager
 
 @unittest.skipUnless(sys.platform == "win32", "the startup dialog is a Windows dialog")
 class LtkManagerDialogTests(unittest.TestCase):
-    """Without LTK Manager, the startup dialog lets the user point Rose at it
+    """Without LTK Manager, the startup dialog lets the user point Anna at it
     instead of opening the tools folder, which no longer helps"""
 
     def setUp(self):

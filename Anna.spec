@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-PyInstaller spec file for Rose
+PyInstaller spec file for Anna
 Builds a standalone executable with Windows UI API support
 """
 
@@ -87,7 +87,7 @@ try:
 except Exception as e:
     print(f"[WARNING] Could not collect Pillow data files: {e}")
 
-# Include the source-built Pengu Loader runtime used for Rose activation/deactivation
+# Include the source-built Pengu Loader runtime used for Anna activation/deactivation
 # Runtime-generated files (logs, per-user state) must be excluded so they don't
 # leak local test data into the shipped installer.
 pengu_loader_dir = Path('Pengu Loader')
@@ -413,7 +413,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='Rose',
+    name='Anna',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -436,5 +436,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name='Rose',
+    name='Anna',
 )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Global constants for Rose
+Global constants for Anna
 All arbitrary values are centralized here for easy tracking and modification
 """
 
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 APP_VERSION = "1.5.2"                           # Application version
-APP_USER_AGENT = f"Rose/{APP_VERSION}"  # User-Agent header for HTTP requests
+APP_USER_AGENT = f"Anna/{APP_VERSION}"  # User-Agent header for HTTP requests
 GAME_EXECUTABLE_NAMES = ("League of Legends.exe", "League of Legends (TM) Client.exe")
 
 # Values are raw text: a '%' in a path must not be read as interpolation
@@ -48,7 +48,7 @@ _CONFIG_ENCODING = "mbcs" if sys.platform == "win32" else "utf-8"
 
 
 def _decode_config(data: bytes) -> str:
-    """Decode config.ini, including lines older Rose versions wrote as UTF-8."""
+    """Decode config.ini, including lines older Anna versions wrote as UTF-8."""
     if data.startswith(b"\xff\xfe"):
         return data.decode("utf-16")
     if data.startswith(b"\xef\xbb\xbf"):

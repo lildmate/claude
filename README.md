@@ -1,6 +1,6 @@
 # 🌹 Rose - Effortless Skin Changer for LoL
 
-> **Saját verzió.** Ez a [Rose](https://github.com/Alban1911/Rose) egy saját példánya: innen frissül, a statisztika ki van kapcsolva, a beállítások a `branding.py`-ban vannak. Részletek: [SAJAT_VERZIO.md](SAJAT_VERZIO.md).
+> **Anna.** Ez a [Rose](https://github.com/Alban1911/Rose) saját, Anna nevű változata: innen frissül, a statisztika ki van kapcsolva, a beállítások a `branding.py`-ban vannak. Részletek: [SAJAT_VERZIO.md](SAJAT_VERZIO.md).
 
 <div align="center">
 

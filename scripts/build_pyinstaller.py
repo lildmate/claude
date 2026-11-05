@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Build script for Rose using PyInstaller
+Build script for Anna using PyInstaller
 Fast builds with Windows UI API support
 """
 
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIN_PYTHON = (3, 11)
 if sys.version_info < MIN_PYTHON:
     sys.stderr.write(
-        f"Rose build scripts require Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer.\n"
+        f"Anna build scripts require Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer.\n"
         "Please re-run using an updated interpreter.\n"
     )
     sys.exit(1)
@@ -66,7 +66,7 @@ def clean_previous_builds():
 
 
 def build_pengu_loader():
-    """Build the vendored Pengu Loader source before packaging Rose."""
+    """Build the vendored Pengu Loader source before packaging Anna."""
     print_step(2, 4, "Building Pengu Loader From Source")
 
     script = ROOT / "scripts" / "build_pengu_loader.py"
@@ -90,12 +90,11 @@ def build_ltf():
 
 
 def check_relay_config():
-    """Refuse to build without the gitignored party relay config (party mode would ship broken)."""
+    """Warn when the gitignored party relay config is missing: the build works, party mode does not."""
     config = ROOT / "party" / "network" / "relay_config.py"
     if not config.exists() or "RELAY_URL" not in config.read_text(encoding="utf-8"):
-        print(f"[ERROR] Missing {config.relative_to(ROOT)} - party mode cannot reach its relay without it")
-        print('        Create it with: RELAY_URL = "wss://<relay-worker-host>"')
-        return False
+        print(f"[WARNING] Missing {config.relative_to(ROOT)} - building without party mode (no relay)")
+        print('          To enable it: RELAY_URL = "wss://<relay-worker-host>" (see SAJAT_VERZIO.md)')
 
     return True
 
@@ -109,7 +108,7 @@ def build_with_pyinstaller():
         "pyinstaller",
         "--clean",
         "--noconfirm",
-        "Rose.spec",
+        "Anna.spec",
     ]
     
     print(f"Running: {' '.join(cmd)}\n")
@@ -127,7 +126,7 @@ def organize_output():
     """Organize output files and verify"""
     print_step(4, 4, "Organizing Output & Verification")
     
-    dist_folder = ROOT / "dist/Rose"
+    dist_folder = ROOT / "dist/Anna"
     
     if not dist_folder.exists():
         print("[ERROR] Build output not found!")
@@ -138,7 +137,7 @@ def organize_output():
 
 def main():
     """Main build process"""
-    print_header("Rose - PyInstaller Build")
+    print_header("Anna - PyInstaller Build")
     
     start_time = time.time()
     
@@ -169,7 +168,7 @@ def main():
     
     print_header("[OK] BUILD COMPLETED SUCCESSFULLY!")
     
-    exe_path = ROOT / "dist/Rose/Rose.exe"
+    exe_path = ROOT / "dist/Anna/Anna.exe"
     
     if exe_path.exists():
         size_mb = exe_path.stat().st_size / (1024 * 1024)
@@ -188,8 +187,8 @@ def main():
         print(f"  - Good enough against casual theft")
         
         print(f"\nTo test:")
-        print(f"  cd dist\\Rose")
-        print(f"  Rose.exe")
+        print(f"  cd dist\\Anna")
+        print(f"  Anna.exe")
     else:
         print("[ERROR] Executable not found!")
         sys.exit(1)

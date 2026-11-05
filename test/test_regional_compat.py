@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-# Isolate configuration from an installed Rose instance. The patch is started in
+# Isolate configuration from an installed Anna instance. The patch is started in
 # setUpModule, not at import: discovery imports every test module before running
 # any, so an import-time patch leaked into the other modules' tests.
 from utils.core import paths
@@ -278,8 +278,8 @@ class OverlayLifetimeTests(unittest.TestCase):
 
 
 class LoaderFallbackTests(unittest.TestCase):
-    """When the client starts, Rose's loader takes over if no loader is active
-    (a standalone Pengu disabled while Rose runs), without any polling."""
+    """When the client starts, Anna's loader takes over if no loader is active
+    (a standalone Pengu disabled while Anna runs), without any polling."""
 
     def setUp(self):
         from utils.integration import pengu_loader
@@ -314,7 +314,7 @@ class LoaderFallbackTests(unittest.TestCase):
         self.activate.assert_not_called()
 
     def test_another_active_loader_is_kept(self):
-        # An unreadable registry entry must not make Rose take over an active loader
+        # An unreadable registry entry must not make Anna take over an active loader
         self.status.return_value = self.loader.PenguStatus.ACTIVE
         self.loader.ensure_active_for_client()
         self.activate.assert_not_called()

@@ -1,4 +1,4 @@
-// ROSE-PartyMode when its connection to Rose drops mid-request.
+// ROSE-PartyMode when its connection to Anna drops mid-request.
 // Runs the real plugin in a VM with a small fake DOM and WebSocket:
 //   node --test test/party_ui_reconnect.test.cjs
 // PARTY_MODE_PLUGIN=<path> runs it against another copy of the plugin.
@@ -250,7 +250,7 @@ async function loadPlugin() {
     console: { log() {}, warn() {}, error() {} },
     WebSocket: FakeWebSocket,
     AbortSignal,
-    fetch: () => Promise.reject(new Error("no Rose in tests")),
+    fetch: () => Promise.reject(new Error("no Anna in tests")),
     localStorage: {
       getItem: (k) => (storage.has(k) ? storage.get(k) : null),
       setItem: (k, v) => storage.set(k, String(v)),
@@ -310,7 +310,7 @@ test("a dropped connection while adding a friend gives the panel back, token inc
   ui.el("add-peer-input").value = "ROSE:friend";
   ui.el("add-peer-btn").click();
   assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "ROSE:friend" });
-  assert.equal(ui.dialog().hasAttribute("close-button"), false, "locked while Rose connects");
+  assert.equal(ui.dialog().hasAttribute("close-button"), false, "locked while Anna connects");
 
   const first = ui.socket;
   first.drop();
@@ -318,7 +318,7 @@ test("a dropped connection while adding a friend gives the panel back, token inc
   assertPanelUnlocked(ui);
   assert.ok(ui.panelVisible(), "the panel stays open");
   assert.equal(ui.el("add-peer-input").value, "ROSE:friend", "the token is back, ready to retry");
-  assert.match(ui.text("add-peer-message"), /Lost the connection to Rose/);
+  assert.match(ui.text("add-peer-message"), /Lost the connection to Anna/);
 
   // Back online: nothing is sent again on its own; the user retries
   ui.reconnect();
@@ -330,7 +330,7 @@ test("a dropped connection while adding a friend gives the panel back, token inc
   ui.el("add-peer-btn").click();
   assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "ROSE:friend" });
 
-  // And the panel closes again once Rose answers
+  // And the panel closes again once Anna answers
   ui.socket.receive({ type: "party-peer-added", success: true, message: "Connected to B" });
   ui.dialog().dispatchEvent({ type: "dialogFrameDismissed" });
   assert.equal(ui.panelVisible(), false);
@@ -349,7 +349,7 @@ for (const [enabled, request, label] of [[false, "party-enable", "Enable Party M
     ui.socket.drop();
     assert.equal(ui.el("party-toggle-btn").disabled, false);
     assert.equal(ui.text("party-toggle-btn"), label);
-    assert.match(ui.text("party-toggle-message"), /Lost the connection to Rose/);
+    assert.match(ui.text("party-toggle-message"), /Lost the connection to Anna/);
     assert.ok(ui.panelVisible());
 
     ui.reconnect();
@@ -362,7 +362,7 @@ for (const [enabled, request, label] of [[false, "party-enable", "Enable Party M
   });
 }
 
-test("a request made while Rose is unreachable is refused at once, never sent later", async () => {
+test("a request made while Anna is unreachable is refused at once, never sent later", async () => {
   const ui = await loadPlugin();
   ui.state(true);
   ui.openPanel();
@@ -370,12 +370,12 @@ test("a request made while Rose is unreachable is refused at once, never sent la
 
   ui.el("add-peer-input").value = "ROSE:friend";
   ui.el("add-peer-btn").click();
-  assert.match(ui.text("add-peer-message"), /Rose is not reachable/);
+  assert.match(ui.text("add-peer-message"), /Anna is not reachable/);
   assertPanelUnlocked(ui);
   assert.equal(ui.el("add-peer-input").value, "ROSE:friend");
 
   ui.el("party-toggle-btn").click();
-  assert.match(ui.text("party-toggle-message"), /Rose is not reachable/);
+  assert.match(ui.text("party-toggle-message"), /Anna is not reachable/);
   assert.equal(ui.el("party-toggle-btn").disabled, false);
 
   ui.reconnect();
@@ -383,7 +383,7 @@ test("a request made while Rose is unreachable is refused at once, never sent la
   assert.deepEqual(ui.socket.types(), ["party-get-state"]);
 });
 
-test("Rose's party state settles a request whose answer was lost", async () => {
+test("Anna's party state settles a request whose answer was lost", async () => {
   const ui = await loadPlugin();
   ui.state(false);
   ui.openPanel();

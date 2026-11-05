@@ -100,9 +100,9 @@ def _choose_mod_file() -> Optional[Path]:
         except Exception:
             pass
         selected = filedialog.askopenfilename(
-            title="Select a Rose mod file",
+            title="Select an Anna mod file",
             filetypes=[
-                ("Rose mods", "*.fantome *.zip *.modpkg"),
+                ("Anna mods", "*.fantome *.zip *.modpkg"),
                 ("Fantome mods", "*.fantome"),
                 ("ZIP mods", "*.zip"),
                 ("Mod packages", "*.modpkg"),
@@ -924,7 +924,7 @@ class MessageHandler:
                         'text': 'Low Disk Space -> free up space',
                     }
 
-                # Category: LTF session (Rose's bridge driving LTK Manager).
+                # Category: LTF session (Anna's bridge driving LTK Manager).
                 # The overlay manager's import messages and hints are the
                 # markers: a mod name or an error text names nothing reliable
                 is_import_failure = (
@@ -937,7 +937,7 @@ class MessageHandler:
                 )
                 if is_ltf_report:
                     if 'bridge files are missing' in ml:
-                        return {'code': 'LTF_MISSING', 'text': 'LTF bridge files missing -> reinstall Rose'}
+                        return {'code': 'LTF_MISSING', 'text': 'LTF bridge files missing -> reinstall Anna'}
                     if 'ltk manager is not installed' in ml:
                         return {'code': 'LTK_MANAGER_MISSING', 'text': 'LTK Manager missing -> install it'}
                     detail = msg.split('Injection failed:', 1)[-1].strip()
@@ -2722,7 +2722,7 @@ class MessageHandler:
             log.error(f"[SkinMonitor] Failed to launch Pengu Loader UI: {e}")
     
     def _handle_language_save(self, payload: dict) -> None:
-        """Save the language of Rose's menus ("auto": the client's) and tell the plugins"""
+        """Save the language of Anna's menus ("auto": the client's) and tell the plugins"""
         from utils.core.i18n import AUTO, LANGUAGES
         language = payload.get("language")
         if language != AUTO and language not in LANGUAGES:

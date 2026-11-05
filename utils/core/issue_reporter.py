@@ -32,11 +32,11 @@ _ALLOWED_CODES = {
     'BASE_SKIN_VERIFY_FAILED',  # Base skin verification mismatch (often causes skin not to show)
     'LEAGUE_ELEVATED',        # The League client runs as administrator: LTK Manager's patcher can't reach it
     'LOW_DISK_SPACE',         # Injection could not install a mod with the available disk space
-    'LTF_MISSING',            # Rose's LTF bridge files (ltk_launcher.exe + LeagueToolFlop.dll) are missing
-    'LTK_MANAGER_MISSING',    # LTK Manager, which Rose drives through the bridge, is not installed
+    'LTF_MISSING',            # Anna's LTF bridge files (ltk_launcher.exe + LeagueToolFlop.dll) are missing
+    'LTK_MANAGER_MISSING',    # LTK Manager, which Anna drives through the bridge, is not installed
     'LTF_FAILED',             # The LTF session (bridge or LTK patcher) reported an error
     'LTF_IMPORT_FAILED',      # A mod could not be imported into LTK Manager's library
-    'PENGU_ACTIVATION_FAILED',  # Pengu Loader could not be activated: Rose is missing from the client
+    'PENGU_ACTIVATION_FAILED',  # Pengu Loader could not be activated: Anna is missing from the client
     'WINDOWS_ADMIN_SHELL',    # Windows runs every program as administrator: LTK Manager refuses to patch
 }
 

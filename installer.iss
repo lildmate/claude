@@ -1,12 +1,12 @@
-; Rose Installer Script for Inno Setup
+; Anna Installer Script for Inno Setup
 ; This creates a proper Windows installer that registers the app
 
-#define MyAppName "Rose"
+#define MyAppName "Anna"
 #define MyAppVersion "1.5.2"
 #define MyAppVersionInfo "1.5.2.0"
-#define MyAppPublisher "Rose Team"
+#define MyAppPublisher "lildmate"
 #define MyAppURL "https://github.com/lildmate/claude"
-#define MyAppExeName "Rose.exe"
+#define MyAppExeName "Anna.exe"
 #define MyAppDescription "Effortless skin changer for League of Legends"
 ; Must match config.SINGLE_INSTANCE_MUTEX_NAME (used by the app to enforce single-instance)
 #define MyAppMutex "Local\RoseSingleInstance"
@@ -14,7 +14,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
 ; Do not use the same AppId value in installers for other applications.
-AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}}
+AppId={{88F5459E-60C5-455B-A1A7-479C1A9BF350}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppVerName={#MyAppName} {#MyAppVersion}
@@ -26,7 +26,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=installer
-OutputBaseFilename=Rose_Setup_{#MyAppVersion}
+OutputBaseFilename=Anna_Setup_{#MyAppVersion}
 SetupIconFile=assets\icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -40,7 +40,7 @@ VersionInfoVersion={#MyAppVersionInfo}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppDescription}
 VersionInfoProductName={#MyAppName}
-; Prevent install/uninstall while Rose is running (mutex is created by the running app)
+; Prevent install/uninstall while Anna is running (mutex is created by the running app)
 AppMutex={#MyAppMutex}
 
 [Languages]
@@ -53,7 +53,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 ; Main application files
 ; hashes.game.txt is user-managed and must be preserved across installations.
-Source: "dist\Rose\*"; DestDir: "{app}"; Excludes: "injection\tools\hashes.game.txt"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Anna\*"; DestDir: "{app}"; Excludes: "injection\tools\hashes.game.txt"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -68,15 +68,15 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [UninstallRun]
 ; Uninstall Pengu Loader (removes its IFEO activation and disables the native hook)
 Filename: "{app}\_internal\Pengu Loader\Pengu Loader.exe"; Parameters: "--uninstall --silent"; Flags: runhidden waituntilterminated skipifdoesntexist
-; Always remove the Rose auto-start scheduled task (created via schtasks /TN "Rose")
-Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN Rose /F"; Flags: runhidden
+; Always remove the Anna auto-start scheduled task (created via schtasks /TN "Anna")
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN Anna /F"; Flags: runhidden
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
 Type: filesandordirs; Name: "{app}\injection\overlay"
 Type: filesandordirs; Name: "{app}\injection\mods"
 ; Remove user data stored in AppData
-; Rose stores user data in %LOCALAPPDATA%\Rose
+; Anna stores user data in %LOCALAPPDATA%\Rose
 Type: filesandordirs; Name: "{localappdata}\Rose"
 ; Note: State files are now stored in user data directory, not in app directory
 
@@ -207,7 +207,7 @@ const
   IfeoKey = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LeagueClientUx.exe';
 
 { Pengu hooks the client with an IFEO debugger: rundll32 "<dir>\core.dll", #6000.
-  If that core.dll is gone (Rose uninstalled or moved), Windows shows a RunDLL
+  If that core.dll is gone (Anna uninstalled or moved), Windows shows a RunDLL
   "module not found" error on every League start, so remove the dead entry.
   A working Pengu install elsewhere keeps its key. }
 procedure _RemoveDeadPenguIfeo();
@@ -287,7 +287,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    { Clean up a dead hook left by an older Rose uninstall }
+    { Clean up a dead hook left by an older Anna uninstall }
     _RemoveDeadPenguIfeo();
 
     _CleanupLegacyUninstallEntry();

@@ -427,7 +427,7 @@ def parse_skin_id(skin_name: str, champion_id: Optional[int] = None) -> int:
 def parent_skin_id(archive: Path, skin_id: int) -> int:
     """The skin a chroma belongs to, so the loading screen shows the skin's name, not the chroma's.
 
-    Rose stores a chroma under its skin: <champion>/<skin>/<chroma>/<chroma>.fantome (a skin is
+    Anna stores a chroma under its skin: <champion>/<skin>/<chroma>/<chroma>.fantome (a skin is
     <champion>/<skin>/<skin>.fantome). Any other place (a form found by name...) keeps *skin_id*.
     """
     try:
@@ -530,7 +530,7 @@ def build(game_dir: Path, mods_dir: Path, mod_folder: Path, skin_id: int,
                     log.debug(f"[LOADNAME] {alias}'s record not found, the chat shows the skin's name too")
 
                 info = {
-                    "Author": "Rose",
+                    "Author": "Anna",
                     "Description": name,
                     "Name": "Loading screen name",
                     "Version": "1.0.0",

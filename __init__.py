@@ -1,2 +1,2 @@
-# Rose - Modular Skin Injector
+# Anna - Modular Skin Injector
 # Main package initialization

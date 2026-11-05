@@ -18,7 +18,7 @@ class _RunNow:
 
 @unittest.skipUnless(sys.platform == 'win32', 'the warning is a Windows dialog')
 class PenguActivationWarningTests(unittest.TestCase):
-    """A failed Pengu activation used to be only a log line: Rose was simply
+    """A failed Pengu activation used to be only a log line: Anna was simply
     missing from the client and the user had no idea why"""
 
     def test_the_user_is_told_and_the_issue_is_recorded(self):

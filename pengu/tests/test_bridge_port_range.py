@@ -8,7 +8,7 @@ PLUGINS = Path(__file__).resolve().parents[2] / 'Pengu Loader' / 'plugins'
 
 
 class BridgePortRangeTests(unittest.TestCase):
-    """The plugins only look for Rose on 50000-50010 while the bridge could take
+    """The plugins only look for Anna on 50000-50010 while the bridge could take
     any of 100 ports: on a later one they were loaded but never connected"""
 
     def test_plugins_search_every_port_the_bridge_can_take(self):

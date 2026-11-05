@@ -215,7 +215,7 @@ class SkinSyncTests(unittest.TestCase):
         self.assertFalse(old.exists())
         self.assertFalse(old.parent.exists())
         self.assertFalse(self.local("skins/1/1001/1002/1002.fantome").exists())
-        self.assertTrue((self.skins / skin_sync.STATE_FILE).exists())  # Rose's own files stay
+        self.assertTrue((self.skins / skin_sync.STATE_FILE).exists())  # Anna's own files stay
 
     def test_a_rewritten_commit_falls_back_to_main(self):
         self.github.commit_gone = True

@@ -138,7 +138,7 @@
   let emittedHistoricSelectionKeys = new Set(); // Avoid re-emitting historic selections across category responses
   let rightPaneMode = "summary"; // "summary" | "picker"
 
-  // Rose's menu language (ROSE-I18n); English until it has loaded
+  // Anna's menu language (ROSE-I18n); English until it has loaded
   const tr = (text, vars) =>
     window.RoseI18n
       ? window.RoseI18n.t(text, vars)

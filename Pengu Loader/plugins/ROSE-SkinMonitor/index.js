@@ -21,7 +21,7 @@ const RETRY_MAX_MS = 30000;
 let BRIDGE_PORT = 50000; // Default, will be updated from /bridge-port endpoint
 let BRIDGE_URL = `ws://127.0.0.1:${BRIDGE_PORT}`;
 const BRIDGE_PORT_STORAGE_KEY = "rose_bridge_port";
-// Every port Rose's bridge can take (BRIDGE_FIRST_PORT, BRIDGE_PORT_COUNT in pengu/core/skin_monitor.py)
+// Every port Anna's bridge can take (BRIDGE_FIRST_PORT, BRIDGE_PORT_COUNT in pengu/core/skin_monitor.py)
 const DISCOVERY_START_PORT = 50000;
 const DISCOVERY_END_PORT = 50099;
 
@@ -204,7 +204,7 @@ function onReady(cb) {
   if (bridgeReady) cb();
 }
 
-// Called when an open connection to Rose closes (not on failed reconnect attempts)
+// Called when an open connection to Anna closes (not on failed reconnect attempts)
 function onDisconnect(cb) {
   _disconnectCallbacks.add(cb);
 }
@@ -261,10 +261,10 @@ function resyncSkinAfterConnect() {
       timestamp: Date.now(),
     });
   } catch (e) {
-    // Rose would inject without knowing the hovered skin: say why, once
+    // Anna would inject without knowing the hovered skin: say why, once
     if (!skinSyncErrorLogged) {
       skinSyncErrorLogged = true;
-      console.warn(`${LOG_PREFIX} Could not send the hovered skin to Rose:`, e);
+      console.warn(`${LOG_PREFIX} Could not send the hovered skin to Anna:`, e);
     }
   }
 }
