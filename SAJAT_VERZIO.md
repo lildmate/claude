@@ -84,33 +84,26 @@ repóból (git-tel: `git remote add upstream https://github.com/Alban1911/Rose`)
 ## Party mode szerver beállítása
 
 A party mode (a barátaid is látják a skinedet) egy kis szerveren
-keresztül köti össze a játékosokat. Ez egy Cloudflare Worker, az ingyenes
-csomag bőven elég hozzá. Mindent böngészőben kell csinálni, telepíteni
-nem kell semmit.
+keresztül köti össze a játékosokat. Ez egy Cloudflare Worker (ingyenes
+csomag), a kódja a `relay-worker/` mappában van. A Cloudflare közvetlenül
+ebből a GitHub repóból építi és tölti fel, minden pushnál magától.
 
-1. **Cloudflare fiók:** regisztrálj a https://dash.cloudflare.com/sign-up
-   oldalon (ingyenes, bankkártya nem kell).
-2. **Workers bekapcsolása:** a bal menüben nyisd meg a
-   **Compute (Workers)** → **Workers & Pages** oldalt egyszer. Ilyenkor kér
-   egy alnevet (pl. `lildmate`), ebből lesz a szerver címe:
-   `proteus-party-relay.lildmate.workers.dev`.
-3. **Account ID:** ugyanott, a Workers & Pages oldal jobb oldalán (vagy a
-   fiók főoldalán) van egy **Account ID**. Másold ki.
-4. **API token:** jobb felül profil ikon → **My Profile** → **API Tokens**
-   → **Create Token** → az **Edit Cloudflare Workers** sablonnál
-   **Use template** → az Account Resources-nál válaszd a fiókodat, a Zone
-   Resources-nál `All zones` → **Continue to summary** → **Create Token**.
-   Másold ki a tokent (csak egyszer mutatja meg).
-5. **Titkok a GitHubon:** a repóban **Settings** → **Secrets and
-   variables** → **Actions** → **New repository secret**, kettőt:
-   - `CLOUDFLARE_API_TOKEN` = a 4. lépés tokenje
-   - `CLOUDFLARE_ACCOUNT_ID` = a 3. lépés Account ID-ja
-6. **Szerver feltöltése:** **Actions** fül → **Party relay** → **Run
-   workflow**. Egy perc múlva a futás összefoglalójában ott a szerver címe,
-   pl. `wss://proteus-party-relay.lildmate.workers.dev`.
-7. **Cím a programba:** újabb secret: `RELAY_URL` = a 6. lépés címe.
-8. **Új verzió:** szólj Claude-nak (vagy emeld a verziószámot): a
-   következő build már party mode-dal készül.
+Beállítás (egyszer kell):
+
+1. Cloudflare fiók, és a **Workers & Pages** oldalon **Create application**
+   → a `lildmate/claude` repó bekötése. Így jön létre a `claude` nevű worker.
+   (A név egyezzen a `relay-worker/wrangler.toml` `name` sorával.)
+2. A `claude` worker → **Settings** → **Build** → **Build configuration**
+   szerkesztése → **Root directory**: `relay-worker` → Mentés.
+3. **Deployments** fül → a legutóbbi buildnél **Retry build** (vagy push
+   bármit a repóba). Ha zöld, a szerver címe:
+   `wss://claude.<a-te-alneved>.workers.dev`
+   (az alnév a Workers & Pages oldal jobb oldalán, a **Subdomain** sorban
+   van).
+4. A GitHub repóban **Settings** → **Secrets and variables** → **Actions**
+   → **New repository secret**: név `RELAY_URL`, érték a 3. lépés címe.
+5. Új verzió (szólj Claude-nak): a következő build már party mode-dal
+   készül.
 
 A barátaidnak is a Proteust kell használniuk, mert az eredeti Rose a saját
 szerverére csatlakozik, így a kettő nem látja egymást.

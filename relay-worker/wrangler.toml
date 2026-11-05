@@ -1,4 +1,5 @@
-name = "proteus-party-relay"
+name = "claude"
+workers_dev = true
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
