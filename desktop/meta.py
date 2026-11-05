@@ -32,8 +32,8 @@ POSITION_KEYS = {key for key, _ in POSITIONS}
 # deeplol's tier number -> the letter players know
 TIER_LETTERS = {0: "OP", 1: "S", 2: "A", 3: "B", 4: "C", 5: "D"}
 PAGE_PREFIX = "Proteus"
-# A patch's tier list counts once this many champion/position entries are ranked
-MIN_RANKED_ENTRIES = 50
+# The live patch is used as soon as it has any ranked entry (even a small sample)
+MIN_RANKED_ENTRIES = 1
 
 
 class DeepLol:
