@@ -29,7 +29,7 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.10.0", open_folder=lambda w: True,
+             version="1.10.1", open_folder=lambda w: True,
              settings={"get": lambda: {"windowOnStart": True}, "set": lambda b: None},
              patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
 server = AppServer(api)
@@ -51,7 +51,8 @@ with sync_playwright() as p:
     page.wait_for_timeout(1500)
     page.screenshot(path=str(out / "4_patch_notes_reszletek.png"))
     page.goto(server.url.split("#")[0] + "#/tier")
-    page.wait_for_timeout(8000)
+    page.wait_for_selector("table", timeout=60000)
+    page.wait_for_timeout(2000)
     page.screenshot(path=str(out / "5_tier_list.png"))
     page.goto(server.url.split("#")[0] + "#/build/103/Middle")
     page.wait_for_timeout(8000)

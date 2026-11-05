@@ -150,6 +150,12 @@
     });
     const pages = { home: renderHome, skins: renderSkins, mods: renderMods, tier: renderTier, build: renderBuild, patch: renderPatch, profile: renderProfile, settings: renderSettings };
     const fn = pages[r.page] || renderHome;
+    if (main.dataset.page !== location.hash) {
+      // a slow page (tier list, builds) shows that it is loading instead of the previous one
+      main.replaceChildren(h("div", { class: "page" }, h("div", { class: "card empty", text: "Betöltés…" })));
+      main.dataset.page = "";
+      window.scrollTo(0, 0);
+    }
     let content;
     try {
       content = await fn(r);

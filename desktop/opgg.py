@@ -167,12 +167,14 @@ class OpGG:
         return champion_keys(self._flight("/lol/champions?position=top"))
 
     def tier_list(self) -> dict:
-        positions, version, keys = [], "", None
-        for key, name, opgg, _ in POSITIONS:
-            data = self._flight(f"/lol/champions?position={opgg}")
-            keys = keys or champion_keys(data)
-            version = version or self.version(data)
-            positions.append({"key": key, "name": name, "champions": parse_tier_list(data, keys)})
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=len(POSITIONS)) as pool:  # five pages at once
+            pages = list(pool.map(lambda p: self._flight(f"/lol/champions?position={p[2]}"), POSITIONS))
+        keys = champion_keys(pages[0])
+        version = self.version(pages[0])
+        positions = [{"key": key, "name": name, "champions": parse_tier_list(data, keys)}
+                     for (key, name, _, _), data in zip(POSITIONS, pages)]
         return {"source": "op.gg", "version": version, "currentVersion": version, "region": "global",
                 "rank": "Emerald+", "positions": positions}
 
