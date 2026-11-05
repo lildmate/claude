@@ -75,7 +75,11 @@ class DeepLol:
         current, candidates = self.versions()
         best = None  # (ranked entries, version, data): the fullest patch when none reaches the bar
         for candidate in candidates:
-            candidate_data = self._json("/champion/rank", platform_id=REGION, tier=RANK, game_version=candidate)
+            try:
+                candidate_data = self._json("/champion/rank", platform_id=REGION, tier=RANK, game_version=candidate)
+            except Exception as e:  # a patch without data yet answers 500
+                log.info("[Window] deeplol.gg has no tier list for %s yet: %s", candidate, e)
+                continue
             ranked = sum(1 for c in candidate_data.get("champion_data_list") or []
                          for p in (c.get("performance_dict") or {}).values() if p and p.get("rank"))
             if best is None or ranked > best[0]:
@@ -83,6 +87,8 @@ class DeepLol:
             if ranked >= MIN_RANKED_ENTRIES:
                 best = (ranked, candidate, candidate_data)
                 break
+        if best is None:
+            raise RuntimeError("deeplol.gg has no tier list")
         _, version, data = best
         positions: Dict[str, List[dict]] = {key: [] for key, _ in POSITIONS}
         for champ in data.get("champion_data_list") or []:
@@ -112,8 +118,12 @@ class DeepLol:
         current, candidates = self.versions()
         lanes, version = [], candidates[-1]
         for version in candidates:
-            data = self._json("/champion/build", platform_id=REGION, champion_id=int(champion_id),
-                              game_version=version, tier=RANK)
+            try:
+                data = self._json("/champion/build", platform_id=REGION, champion_id=int(champion_id),
+                                  game_version=version, tier=RANK)
+            except Exception as e:
+                log.info("[Window] deeplol.gg has no build for %s on %s yet: %s", champion_id, version, e)
+                continue
             lanes = []
             for key, name in POSITIONS:
                 lane = (data.get("build_by_lane") or {}).get(key) or {}

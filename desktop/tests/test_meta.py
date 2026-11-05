@@ -34,7 +34,8 @@ def fake_get(url, params):
         return FakeResponse({"recent_version": "16.22", "game_version_list": ["16.21", "16.20"]})
     if url.endswith("/champion/rank"):
         if params["game_version"] == "16.22":
-            return FakeResponse(RANK_LIVE if LIVE["ready"] else {"champion_data_list": []})
+            # what deeplol.gg answers for a patch it has no data for yet
+            return FakeResponse(RANK_LIVE) if LIVE["ready"] else FakeResponse({"msg": "Internal Server Error"}, 500)
         return FakeResponse(RANK)
     if url.endswith("/champion/build"):
         return FakeResponse(BUILD)
