@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main entry point for Anna
+Main entry point for Proteus
 """
 
 import argparse
@@ -15,7 +15,7 @@ from branding import DISCORD_URL, GITHUB_URL
 MIN_PYTHON = (3, 11)
 if sys.version_info < MIN_PYTHON:
     raise RuntimeError(
-        f"Anna requires Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer. "
+        f"Proteus requires Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer. "
         "Please upgrade your interpreter and rebuild the application."
     )
 
@@ -52,23 +52,23 @@ def _dll_dialog_text(reason: str, detail: str = ""):
     runtime problem; *action* is the label of the button that fixes it."""
     if reason == "no_manager":
         return (
-            "Anna - LTK Manager Missing",
-            "Anna can't find LTK Manager",
-            "Anna applies skins through LTK Manager. It only has to be installed: Anna "
+            "Proteus - LTK Manager Missing",
+            "Proteus can't find LTK Manager",
+            "Proteus applies skins through LTK Manager. It only has to be installed: Proteus "
             "opens it in the background during champ select and closes it after the game, "
             "so you never have to open it yourself.",
-            f"1. Install LTK Manager ({LTK_MANAGER_DOWNLOAD_URL}), then restart Anna.\n"
+            f"1. Install LTK Manager ({LTK_MANAGER_DOWNLOAD_URL}), then restart Proteus.\n"
             "2. Already installed in another folder? Click Set up path and select its "
-            "ltk-manager.exe: Anna remembers it and starts right away.",
+            "ltk-manager.exe: Proteus remembers it and starts right away.",
             "Set up path",
         )
     return (
-        "Anna - Missing Component",
-        "One Anna component is missing",
-        f"Anna needs {detail or 'its bridge files'} in its tools folder before it can start.",
-        "1. Reinstall Anna: these files are part of every install.\n"
-        "2. If an antivirus removed them, restore the files or add Anna's folder to its exclusions.\n"
-        "3. Restart Anna.",
+        "Proteus - Missing Component",
+        "One Proteus component is missing",
+        f"Proteus needs {detail or 'its bridge files'} in its tools folder before it can start.",
+        "1. Reinstall Proteus: these files are part of every install.\n"
+        "2. If an antivirus removed them, restore the files or add Proteus's folder to its exclusions.\n"
+        "3. Restart Proteus.",
         "Open tools folder",
     )
 
@@ -135,7 +135,7 @@ def _show_native_dll_dialog(reason="missing", detail=""):
     button_close = 1002
     buttons = (TaskDialogButton * 2)(
         TaskDialogButton(button_open, action),
-        TaskDialogButton(button_close, "Close Anna"),
+        TaskDialogButton(button_close, "Close Proteus"),
     )
     content = _with_links(f"{status_body}\n\nHow to fix it:\n{steps}")
     help_url = DISCORD_URL or GITHUB_URL
@@ -270,7 +270,7 @@ def _show_fallback_dll_dialog(reason="missing", detail="") -> str:
     message = (
         f"{status_title}\n\n{status_body}\n\nHow to fix it:\n{steps}\n\n"
         + (f"Help: {DISCORD_URL or GITHUB_URL}\n\n" if (DISCORD_URL or GITHUB_URL) else "")
-        + f"Press OK to {action.lower()}, or Cancel to close Anna."
+        + f"Press OK to {action.lower()}, or Cancel to close Proteus."
     )
     response = ctypes.windll.user32.MessageBoxW(
         0, message, title, 0x00000001 | 0x00000030 | 0x00040000
@@ -337,9 +337,9 @@ def _pick_ltk_manager() -> Optional[Path]:
 
 
 def _set_up_ltk_manager_path(tools_dir) -> Optional[bool]:
-    """Let the user point Anna at LTK Manager and save it as ltkManagerPath.
+    """Let the user point Proteus at LTK Manager and save it as ltkManagerPath.
 
-    True once Anna finds LTK Manager there, None when the user cancelled or
+    True once Proteus finds LTK Manager there, None when the user cancelled or
     picked something else (the dialog shows again).
     """
     import ctypes
@@ -356,7 +356,7 @@ def _set_up_ltk_manager_path(tools_dir) -> Optional[bool]:
             0,
             f"{picked.name} is not LTK Manager.\n\nSelect ltk-manager.exe in the folder LTK Manager "
             "is installed in.",
-            "Anna - LTK Manager Missing",
+            "Proteus - LTK Manager Missing",
             message_flags,
         )
         return None
@@ -364,9 +364,9 @@ def _set_up_ltk_manager_path(tools_dir) -> Optional[bool]:
     if ToolsManager(tools_dir).detect_ltk_manager() is None:
         ctypes.windll.user32.MessageBoxW(
             0,
-            "Anna could not save the path in its config.ini.\n\nCheck that Anna can write to "
+            "Proteus could not save the path in its config.ini.\n\nCheck that Proteus can write to "
             "%LOCALAPPDATA%\\Rose, then try again.",
-            "Anna - LTK Manager Missing",
+            "Proteus - LTK Manager Missing",
             message_flags,
         )
         return None
@@ -377,7 +377,7 @@ def _set_up_ltk_manager_path(tools_dir) -> Optional[bool]:
 def _show_dll_dialog(tools_dir, reason="missing", detail="") -> bool:
     """Show a native recovery dialog before the main app starts.
 
-    Returns whether Anna can start (LTK Manager was set up from the dialog).
+    Returns whether Proteus can start (LTK Manager was set up from the dialog).
     """
     import subprocess
 
@@ -400,7 +400,7 @@ def _show_dll_dialog(tools_dir, reason="missing", detail="") -> bool:
 
 
 def _check_dll_present() -> bool:
-    """Check that Anna's LTF bridge is present and LTK Manager is installed."""
+    """Check that Proteus's LTF bridge is present and LTK Manager is installed."""
     import sys
     if sys.platform != "win32":
         return True  # Only relevant on Windows
@@ -450,19 +450,19 @@ log = get_logger()
 
 
 def _warn_pengu_activation_failed() -> None:
-    """Tell the user Anna will not show in the client because Pengu Loader is not active.
+    """Tell the user Proteus will not show in the client because Pengu Loader is not active.
 
-    Anna's own Troubleshooting panel lives in the client plugins, the part that
+    Proteus's own Troubleshooting panel lives in the client plugins, the part that
     failed, so this has to be a Windows dialog. It runs on its own thread so
     startup goes on while it is open.
     """
     log = get_logger()
-    log.error("[Pengu] Activation failed - Anna will not appear in the League client")
+    log.error("[Pengu] Activation failed - Proteus will not appear in the League client")
     report_issue(
         "PENGU_ACTIVATION_FAILED",
         "error",
-        "Pengu Loader could not be activated, so Anna did not appear in the League client.",
-        hint="Close the League client, then restart Anna. If it happens again, make sure your antivirus is not blocking Pengu Loader.",
+        "Pengu Loader could not be activated, so Proteus did not appear in the League client.",
+        hint="Close the League client, then restart Proteus. If it happens again, make sure your antivirus is not blocking Pengu Loader.",
     )
     if sys.platform != "win32":
         return
@@ -472,11 +472,11 @@ def _warn_pengu_activation_failed() -> None:
         try:
             ctypes.windll.user32.MessageBoxW(
                 0,
-                "Anna could not activate Pengu Loader, so it will not appear in the League client.\n\n"
-                "Close the League client, then restart Anna.\n"
+                "Proteus could not activate Pengu Loader, so it will not appear in the League client.\n\n"
+                "Close the League client, then restart Proteus.\n"
                 "If it happens again, make sure your antivirus is not blocking Pengu Loader.\n\n"
                 "Details are in %LOCALAPPDATA%\\Rose\\logs\\",
-                "Anna - Pengu Loader",
+                "Proteus - Pengu Loader",
                 0x50030,  # MB_OK | MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST
             )
         except Exception as e:
@@ -555,7 +555,7 @@ def _update_registry_version() -> None:
     startup keeps "Apps & features" in sync.
 
     Inno names its entry after the AppId (``AppId={{...}}`` keeps the closing
-    ``}}``). Anna has its own AppId, separate from the original Rose's.
+    ``}}``). Proteus has its own AppId, separate from the original Rose's.
     """
     if sys.platform != "win32" or not getattr(sys, "frozen", False):
         return
@@ -572,11 +572,11 @@ def _update_registry_version() -> None:
             pass
 
 def _schedule_restart() -> bool:
-    """Spawn a detached helper that relaunches Anna after this process exits.
+    """Spawn a detached helper that relaunches Proteus after this process exits.
 
     The new instance cannot start while the current one is still alive because
     of the single-instance mutex, so a small batch file waits for this PID to
-    exit and then starts Anna again.
+    exit and then starts Proteus again.
     """
     import os
     import subprocess
@@ -625,7 +625,7 @@ def _schedule_restart() -> bool:
 
 def run_league_unlock(args: Optional[argparse.Namespace] = None,
                       injection_threshold: Optional[float] = None) -> None:
-    """Run the core Anna application startup and main loop."""
+    """Run the core Proteus application startup and main loop."""
     # Check for single instance before doing anything else
     check_single_instance()
 
@@ -711,10 +711,10 @@ def run_league_unlock(args: Optional[argparse.Namespace] = None,
         tray_manager.quit_callback = updated_tray_quit_callback
 
         def updated_tray_restart_callback():
-            """Callback for tray restart - relaunch Anna after this process exits"""
+            """Callback for tray restart - relaunch Proteus after this process exits"""
             log.info("Restart requested from tray - scheduling relaunch")
             if not _schedule_restart():
-                log.warning("Restart scheduling failed; Anna will quit without relaunching")
+                log.warning("Restart scheduling failed; Proteus will quit without relaunching")
             state.stop = True
             log.info("Stop flag set - main loop should exit before relaunch")
 
@@ -751,7 +751,7 @@ def run_league_unlock(args: Optional[argparse.Namespace] = None,
     )
 
     # Activate Pengu now rather than once a client runs: a client started after
-    # Anna then loads the plugins itself instead of starting without them and
+    # Proteus then loads the plugins itself instead of starting without them and
     # waiting for a restart. A running client is restarted (the bridge is up).
     log.info("Activating Pengu Loader...")
     pengu_active = pengu_loader.activate_on_start(get_config_option("General", "clientPath"))
@@ -780,9 +780,9 @@ def run_league_unlock(args: Optional[argparse.Namespace] = None,
 
 
 def main() -> None:
-    """Program entry point that prepares and launches Anna."""
+    """Program entry point that prepares and launches Proteus."""
     args = setup_arguments()
-    # Update before checking the DLL: an Anna that refuses to start still
+    # Update before checking the DLL: a Proteus that refuses to start still
     # receives the version that fixes its check
     if sys.platform == "win32":
         if not args.dev:
@@ -815,7 +815,7 @@ if __name__ == "__main__":
             report_issue(
                 "FATAL_CRASH",
                 "error",
-                "Anna crashed unexpectedly.",
+                "Proteus crashed unexpectedly.",
                 details={"type": type(e).__name__, "error": str(e)},
                 hint="Check %LOCALAPPDATA%\\Rose\\logs\\ for details.",
             )
@@ -824,7 +824,7 @@ if __name__ == "__main__":
         
         error_msg = f"""
 ================================================================================
-FATAL ERROR - Anna Crashed
+FATAL ERROR - Proteus Crashed
 ================================================================================
 Error: {e}
 Type: {type(e).__name__}
@@ -852,8 +852,8 @@ Log location: Check %LOCALAPPDATA%\\Rose\\logs\\
             try:
                 ctypes.windll.user32.MessageBoxW(
                     0,
-                    f"Anna crashed with an unhandled error:\n\n{str(e)}\n\nError type: {type(e).__name__}\n\nPlease check the log file in:\n%LOCALAPPDATA%\\Rose\\logs\\",
-                    "Anna - Fatal Error",
+                    f"Proteus crashed with an unhandled error:\n\n{str(e)}\n\nError type: {type(e).__name__}\n\nPlease check the log file in:\n%LOCALAPPDATA%\\Rose\\logs\\",
+                    "Proteus - Fatal Error",
                     0x50010  # MB_OK | MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST
                 )
             except Exception:

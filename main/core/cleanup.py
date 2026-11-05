@@ -24,7 +24,7 @@ def perform_cleanup(state: SharedState, thread_manager: ThreadManager, tray_mana
     """Perform application cleanup"""
     log_section(log, "Cleanup", "")
 
-    # A suspension outlives Anna: resume first, or closing during injection freezes the game for good
+    # A suspension outlives Proteus: resume first, or closing during injection freezes the game for good
     if injection_manager:
         try:
             injection_manager.resume_if_suspended()

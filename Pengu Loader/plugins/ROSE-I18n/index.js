@@ -1,7 +1,7 @@
 /**
  * @name ROSE-I18n
  * @author Rose Team
- * @description Language of Anna's menus: the one picked in Settings, else the League client's, else English
+ * @description Language of Proteus's menus: the one picked in Settings, else the League client's, else English
  */
 (function initRoseI18n() {
   const LOG_PREFIX = "[ROSE-I18n]";
@@ -23,7 +23,7 @@
   }
 
   // Templated texts ("Connected to {name}") as regexes, to translate finished
-  // English texts from Anna (error messages). Short ones ("Skin {id}") would
+  // English texts from Proteus (error messages). Short ones ("Skin {id}") would
   // match about anything, so they are left out.
   let templates = [];
 
@@ -79,7 +79,7 @@
     }
   }
 
-  // Last loaded texts, so menus built before Anna answers already speak the language
+  // Last loaded texts, so menus built before Proteus answers already speak the language
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
     if (cached) apply(cached, false);

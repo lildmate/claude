@@ -10,7 +10,7 @@ from injection.game.game_monitor import GameMonitor, resume_orphaned_game
 
 
 class SuspendedGameTests(unittest.TestCase):
-    """A stand-in game process, suspended the way Anna suspends League"""
+    """A stand-in game process, suspended the way Proteus suspends League"""
 
     def setUp(self):
         child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])

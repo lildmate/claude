@@ -4,9 +4,9 @@
 Process Manager
 Handles process management utilities for the LTF session
 
-LTK Manager hosts the LTF bridge and drives the patcher, so Anna stops it
+LTK Manager hosts the LTF bridge and drives the patcher, so Proteus stops it
 through the session stopper (see overlay_manager.py): the patcher is stopped
-and Anna's mods are removed before the manager closes.
+and Proteus's mods are removed before the manager closes.
 """
 
 import subprocess
@@ -39,17 +39,17 @@ class ProcessManager:
         self.current_overlay_process = None
         # Set when the user stops injection so the kill isn't reported as a failure
         self.stopped_by_user = False
-        # Set when Anna's own cleanup stops the session (lobby change, shutdown)
+        # Set when Proteus's own cleanup stops the session (lobby change, shutdown)
         self.stopped_by_rose = False
         # Graceful end of the current LTF session, registered by the overlay manager
         self._session_stopper = None
-        # (pid, create time) of the LTK Manager Anna started; a running LTK
-        # Manager Anna did not start belongs to the user and is left alone
+        # (pid, create time) of the LTK Manager Proteus started; a running LTK
+        # Manager Proteus did not start belongs to the user and is left alone
         self.ltk_manager_process = None
 
     def set_session_stopper(self, stopper):
         """Register the callable that gracefully ends the current LTF session
-        (stop the patcher, remove Anna's mods, close a manager we launched)."""
+        (stop the patcher, remove Proteus's mods, close a manager we launched)."""
         self._session_stopper = stopper
 
     def clear_session_stopper(self, stopper):
@@ -64,7 +64,7 @@ class ProcessManager:
         self.kill_all_runoverlay_processes()
 
     def _mark_stopped_by_rose(self):
-        """Tag the current session before Anna stops it: its failure then
+        """Tag the current session before Proteus stops it: its failure then
         is not reported as an injection failure"""
         self.stopped_by_rose = True
         self._stop_session()
@@ -105,19 +105,19 @@ class ProcessManager:
             log.debug("[INJECT] No active overlay process to stop")
 
     def kill_all_runoverlay_processes(self):
-        """Close the LTK Manager Anna started (for ChampSelect cleanup)"""
+        """Close the LTK Manager Proteus started (for ChampSelect cleanup)"""
         self._mark_stopped_by_rose()
         self._close_rose_ltk_manager()
         self.stop_overlay_process()
 
     def kill_all_modtools_processes(self):
-        """Close the LTK Manager Anna started (for application shutdown)"""
+        """Close the LTK Manager Proteus started (for application shutdown)"""
         self._mark_stopped_by_rose()
         self._close_rose_ltk_manager()
         self.stop_overlay_process()
 
     def _close_rose_ltk_manager(self):
-        """Terminate the LTK Manager Anna started, if it is still running.
+        """Terminate the LTK Manager Proteus started, if it is still running.
 
         The session stopper already asked it to exit through the bridge; this
         catches one whose bridge stopped answering. Any other LTK Manager is
@@ -132,14 +132,14 @@ class ProcessManager:
         pid, created = registered
         try:
             proc = psutil.Process(pid)
-            # A pid Windows gave to another process since is not Anna's
+            # A pid Windows gave to another process since is not Proteus's
             if (proc.name() or "").lower() not in LTK_MANAGER_PROCESSES:
                 self.ltk_manager_process = None
                 return
             if created is not None and abs(proc.create_time() - created) > 1.0:
                 self.ltk_manager_process = None
                 return
-            log.info(f"[INJECT] Closing the LTK Manager Anna started (PID {pid})")
+            log.info(f"[INJECT] Closing the LTK Manager Proteus started (PID {pid})")
             proc.terminate()
             try:
                 proc.wait(timeout=PROCESS_TERMINATE_WAIT_S)
@@ -149,4 +149,4 @@ class ProcessManager:
         except psutil.NoSuchProcess:
             self.ltk_manager_process = None
         except (psutil.Error, OSError) as e:
-            log.debug(f"[INJECT] Could not close the LTK Manager Anna started (PID {pid}): {e}")
+            log.debug(f"[INJECT] Could not close the LTK Manager Proteus started (PID {pid}): {e}")

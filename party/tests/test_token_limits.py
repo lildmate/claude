@@ -8,7 +8,7 @@ import zlib
 
 from party.protocol.token_codec import PartyToken, create_token
 
-# Longest token text Anna accepts (token_codec.MAX_TOKEN_LENGTH)
+# Longest token text Proteus accepts (token_codec.MAX_TOKEN_LENGTH)
 MAX_TOKEN_LENGTH = 160
 
 

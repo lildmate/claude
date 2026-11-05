@@ -8,7 +8,7 @@ from pengu.communication.message_handler import MessageHandler
 
 class MessageIsolationTests(unittest.TestCase):
     """An error in one message used to escape to the WebSocket server, which
-    closed the bridge: the plugins lost Anna until they reconnected"""
+    closed the bridge: the plugins lost Proteus until they reconnected"""
 
     def setUp(self):
         self.handler = MessageHandler.__new__(MessageHandler)

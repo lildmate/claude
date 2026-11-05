@@ -4,9 +4,9 @@ let data = [
   {
     groupName: "RoseWL",
     titleKey: "el_RoseWL",
-    titleName: "Anna / WinLose",
+    titleName: "Proteus / WinLose",
     capitalTitleKey: "el_RoseWL_capital",
-    capitalTitleName: "Anna / WinLose",
+    capitalTitleName: "Proteus / WinLose",
     element: [
       {
         name: "winlose-settings",

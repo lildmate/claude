@@ -1,7 +1,7 @@
 /**
  * @name Rose-SettingsPanel
  * @author Rose Team
- * @description Settings panel for Anna
+ * @description Settings panel for Proteus
  * @link https://github.com/FlorentTariolle/ROSE-SettingsPanel
  */
 (function initSettingsPanel() {
@@ -14,12 +14,12 @@
   const PANEL_ID = "rose-settings-panel";
   const FLYOUT_ID = "rose-settings-flyout";
 
-  // Anna's menu language (ROSE-I18n); English until it has loaded
+  // Proteus's menu language (ROSE-I18n); English until it has loaded
   const t = (text, vars) =>
     window.RoseI18n
       ? window.RoseI18n.t(text, vars)
       : text.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m));
-  // A finished English text from Anna (error message...), translated when it is a known one
+  // A finished English text from Proteus (error message...), translated when it is a known one
   const tAny = (text) => (window.RoseI18n ? window.RoseI18n.tAny(text) : text);
 
   // Codes the language picker shows, like the flags of a language menu
@@ -62,7 +62,7 @@
     });
   }
 
-  // Injection threshold range (seconds), as Anna enforces it (config.py): a
+  // Injection threshold range (seconds), as Proteus enforces it (config.py): a
   // skin changed after the threshold is ignored, so the one staged before it
   // is applied. Under a second, a late change could not make the game.
   const THRESHOLD_MIN_S = 1.0;
@@ -1407,7 +1407,7 @@
       cursor: default;
     }
 
-    /* Shown while Anna imports a picked mod */
+    /* Shown while Proteus imports a picked mod */
     #rose-mod-import-loading {
       position: fixed;
       top: 0;
@@ -1719,7 +1719,7 @@
     applyErrorBadges();
   }
 
-  // Reconnect screen: let the player stop Anna's injection when a mod crashes the game
+  // Reconnect screen: let the player stop Proteus's injection when a mod crashes the game
   let _reconnectObserverStarted = false;
   // The client detaches the reconnect screen while hidden, so querySelector can't reach it
   const _stopInjectionButtons = new Set();
@@ -1742,8 +1742,8 @@
   }
 
   function labelStopInjectionButton(button) {
-    button.title = t("Stop Anna's injection, then reconnect without mods (use this if a mod crashes your game)");
-    button.textContent = button.hasAttribute("disabled") ? t("Mods disabled") : t("Disable Anna mods");
+    button.title = t("Stop Proteus's injection, then reconnect without mods (use this if a mod crashes your game)");
+    button.textContent = button.hasAttribute("disabled") ? t("Mods disabled") : t("Disable Proteus mods");
   }
 
   function resetStopInjectionButton(button) {
@@ -1830,7 +1830,7 @@
         navItem;
 
       host.style.position = host.style.position || "relative";
-      // Use warning image overlay (assets/red-warning.png) on the top-right of the Anna icon.
+      // Use warning image overlay (assets/red-warning.png) on the top-right of the Proteus icon.
       let badge = host.querySelector("#rose-errors-badge");
       if (errorBadgeState.hasErrors) {
         if (!badge) {
@@ -1962,7 +1962,7 @@
     return path.trim().length > 0;
   }
 
-  // Language of Anna's menus: a code badge in the corner of Settings, applied as soon as it is picked
+  // Language of Proteus's menus: a code badge in the corner of Settings, applied as soon as it is picked
   function createLanguagePicker() {
     const i18n = window.RoseI18n;
     const setting = i18n.setting || "auto";
@@ -4004,7 +4004,7 @@
     { id: "others", name: "Others" },
   ];
 
-  // Manage Mods only offers the categories Anna says have a mod added (null until it answers)
+  // Manage Mods only offers the categories Proteus says have a mod added (null until it answers)
   let categoriesWithMods = null;
 
   function requestManageCategories() {
@@ -4024,7 +4024,7 @@
     dropdown.querySelectorAll('lol-uikit-dropdown-option:not([value=""])').forEach((option) => {
       option.classList.toggle("rose-empty-category", !categories.includes(option.getAttribute("value")));
     });
-    // Before Anna answers nothing is offered, but "no mods" isn't claimed yet either
+    // Before Proteus answers nothing is offered, but "no mods" isn't claimed yet either
     dropdown.classList.toggle("rose-no-mods", categoriesWithMods !== null && categories.length === 0);
   }
 
@@ -4708,8 +4708,8 @@
   let modImportShownAt = 0;
   let modImportTimer = null;
 
-  // Anna sends mod-import-started once a file is picked and folder-opened-response
-  // when the import is over. It can't be dismissed: only the answer or losing Anna ends it
+  // Proteus sends mod-import-started once a file is picked and folder-opened-response
+  // when the import is over. It can't be dismissed: only the answer or losing Proteus ends it
   function showModImportLoading(payload) {
     hideModImportLoading();
     modImportShownAt = Date.now();
@@ -4991,7 +4991,7 @@
 
           let fixText;
           if (thresholdAtMax) {
-            fixText = t("Fix: you're already at the maximum Injection Threshold. This usually means the injection is extremely slow. Try lighter mods, close heavy apps, move League/mods to an SSD, and consider adding antivirus exclusions for the League and Anna folders. Then retry.");
+            fixText = t("Fix: you're already at the maximum Injection Threshold. This usually means the injection is extremely slow. Try lighter mods, close heavy apps, move League/mods to an SSD, and consider adding antivirus exclusions for the League and Proteus folders. Then retry.");
           } else if (hasTrackerData) {
             fixText = t('Fix: based on {games} game(s), base skin confirmation takes up to {ms}ms (p90). Recommended threshold: {seconds}s. Use the "Apply recommended" button below, or increase "Injection Threshold" manually.', { games: stats.confirmed_count, ms: stats.p90_ms, seconds: recS });
           } else {
@@ -5022,7 +5022,7 @@
             details: [
               t("What it means: injection took longer than the allowed time, so ROSE stopped the process."),
               timeoutAtMax
-                ? t("Fix: you're already at the maximum Monitor Auto-Resume Timeout. This usually means the injection is extremely slow. Try lighter mods, close heavy apps, move League/mods to an SSD, and consider adding antivirus exclusions for the League and Anna folders. Then retry.")
+                ? t("Fix: you're already at the maximum Monitor Auto-Resume Timeout. This usually means the injection is extremely slow. Try lighter mods, close heavy apps, move League/mods to an SSD, and consider adding antivirus exclusions for the League and Proteus folders. Then retry.")
                 : t('Fix: increase "Monitor Auto-Resume Timeout (seconds)" and click Save. If the warning is still there, increase it again and Save again. Once the warning is gone, try again.'),
             ],
           };
@@ -5034,18 +5034,18 @@
           return {
             title: t('Not enough disk space for injection'),
             details: [
-              t('What it means: Anna could not install the mod for the selected skin.'),
-              t('Fix: free up space on the drive containing Anna injection files, then retry. Map mods can require several GB.'),
+              t('What it means: Proteus could not install the mod for the selected skin.'),
+              t('Fix: free up space on the drive containing Proteus injection files, then retry. Map mods can require several GB.'),
             ],
           };
         }
 
         if (code === 'LTF_MISSING') {
           return {
-            title: t('Anna bridge files are missing'),
+            title: t('Proteus bridge files are missing'),
             details: [
-              t('What it means: Anna needs ltk_launcher.exe and LeagueToolFlop.dll in its tools folder to drive LTK Manager.'),
-              t("Fix: reinstall Anna (the files are part of every install). If an antivirus removed them, restore the files or add Anna's folder to its exclusions, then restart Anna."),
+              t('What it means: Proteus needs ltk_launcher.exe and LeagueToolFlop.dll in its tools folder to drive LTK Manager.'),
+              t("Fix: reinstall Proteus (the files are part of every install). If an antivirus removed them, restore the files or add Proteus's folder to its exclusions, then restart Proteus."),
             ],
           };
         }
@@ -5053,7 +5053,7 @@
         if (code === 'WINDOWS_ADMIN_SHELL') {
           // Why Windows runs everything as administrator (windows_account.py)
           const fixes = {
-            builtin: () => t("Fix: this is Windows' built-in Administrator account (some custom Windows builds set it up). Use Anna, League and LTK Manager from a regular Windows account (Settings > Accounts > Other users > Add account)."),
+            builtin: () => t("Fix: this is Windows' built-in Administrator account (some custom Windows builds set it up). Use Proteus, League and LTK Manager from a regular Windows account (Settings > Accounts > Other users > Add account)."),
             uac: () => t('Fix: turn User Account Control back on (search Windows for "Change User Account Control settings" and move the slider above "Never notify"), then restart the PC.'),
           };
           const fix = fixes[e?.cause];
@@ -5091,8 +5091,8 @@
           return {
             title: t('LTK Manager is not installed'),
             details: [
-              t('What it means: Anna applies skins through LTK Manager, which was not found on this PC.'),
-              t("Fix: install LTK Manager, or set ltkManagerPath in Anna's config.ini to its ltk-manager.exe, then restart Anna."),
+              t('What it means: Proteus applies skins through LTK Manager, which was not found on this PC.'),
+              t("Fix: install LTK Manager, or set ltkManagerPath in Proteus's config.ini to its ltk-manager.exe, then restart Proteus."),
             ],
           };
         }
@@ -5103,26 +5103,26 @@
             title: t('The mod could not be installed into LTK Manager'),
             details: [
               detail ? t('What happened: {detail}', { detail }) : t('What happened: LTK Manager refused the mod import.'),
-              t('Fix: free up some disk space, then retry. If it keeps happening, report it with your Anna logs.'),
+              t('Fix: free up some disk space, then retry. If it keeps happening, report it with your Proteus logs.'),
               t('Details are in ltk_bridge.log and ltk_api.log in C:\\Users\\Public.'),
             ],
           };
         }
 
         // Kept in one place: it is also the key of its translations (ROSE-I18n)
-        const CDP_FIX = "Fix: Anna could not reach LTK Manager's built-in browser. Restart your PC, then retry. If it keeps happening, use a regular Windows account (not the built-in Administrator) and check that your antivirus does not block LTK Manager.";
+        const CDP_FIX = "Fix: Proteus could not reach LTK Manager's built-in browser. Restart your PC, then retry. If it keeps happening, use a regular Windows account (not the built-in Administrator) and check that your antivirus does not block LTK Manager.";
         if (code === 'LTF_FAILED') {
           const detail = String(e?.detail || '').trim();
           // Why it failed (ltk_failure_cause in overlay_manager.py): what to
           // do depends on it
           const fixes = {
-            start: () => t("Fix: Anna could not start the LTK patcher. Check that ltk_launcher.exe and LeagueToolFlop.dll are still in Anna's tools folder: an antivirus may have removed them."),
-            running: () => t('Fix: close LTK Manager (also from the system tray), then retry. Anna starts it with its bridge and closes it again after the game.'),
+            start: () => t("Fix: Proteus could not start the LTK patcher. Check that ltk_launcher.exe and LeagueToolFlop.dll are still in Proteus's tools folder: an antivirus may have removed them."),
+            running: () => t('Fix: close LTK Manager (also from the system tray), then retry. Proteus starts it with its bridge and closes it again after the game.'),
             late: () => t('Fix: the game started before the patcher was ready. Retry the next game.'),
-            bridge: () => t('Fix: LTK Manager closed while the game was running. Retry the next game. If it happens every game, report it with your Anna logs.'),
+            bridge: () => t('Fix: LTK Manager closed while the game was running. Retry the next game. If it happens every game, report it with your Proteus logs.'),
             import: () => t('Fix: free up some disk space, then retry.'),
-            killed: () => t("Fix: another program closed LTK Manager, most often an antivirus. Add Anna's folder to its exclusions, then retry."),
-            crashed: () => t('Fix: LTK Manager crashed. Retry the next game. If it crashes every game, report it with your Anna logs.'),
+            killed: () => t("Fix: another program closed LTK Manager, most often an antivirus. Add Proteus's folder to its exclusions, then retry."),
+            crashed: () => t('Fix: LTK Manager crashed. Retry the next game. If it crashes every game, report it with your Proteus logs.'),
             cdp: () => t(CDP_FIX),
             league_admin: () => t('Fix: League is set to run as administrator, and LTK Manager does not patch it then. Right-click League of Legends.exe and LeagueClient.exe (in the League of Legends folder) > Properties > Compatibility, untick "Run this program as an administrator" (also under "Change settings for all users"), then restart League.'),
             disabled: () => t("Fix: LTK Manager's integrity check turned the overlay off because of a mod (named above). LTK Manager refuses a custom skin made of another skin's files: use another custom skin or the official one."),
@@ -5135,7 +5135,7 @@
             title: t('LTK patcher failed during injection'),
             details: [
               detail ? t('What happened: {detail}', { detail }) : t('What happened: the LTK patcher reported an error.'),
-              fix ? fix() : t('Fix: retry the next game. If it fails every game, report it with your Anna logs.'),
+              fix ? fix() : t('Fix: retry the next game. If it fails every game, report it with your Proteus logs.'),
               t('Details are in ltk_bridge.log, ltk_api.log and ltk_launcher.log in C:\\Users\\Public.'),
             ],
           };
@@ -5467,7 +5467,7 @@
       bridge.subscribe("champion-skins-response", handleChampionSkinsResponse);
       bridge.subscribe("mod-import-started", showModImportLoading);
       bridge.subscribe("folder-opened-response", handleFolderOpenedResponse);
-      // An Anna that closes mid-import never answers it
+      // A Proteus that closes mid-import never answers it
       bridge.onDisconnect(hideModImportLoading);
       bridge.subscribe("manage-categories-response", handleManageCategoriesResponse);
       bridge.subscribe("manage-champion-mods-response", handleManageSkinModsResponse);

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """TCP client for the LeagueToolFlop (LTF) bridge.
 
-Anna builds ``LeagueToolFlop.dll`` (see native/ltf/) and ``ltk_launcher.exe``
+Proteus builds ``LeagueToolFlop.dll`` (see native/ltf/) and ``ltk_launcher.exe``
 starts LTK Manager with that DLL injected into it. The DLL serves a
 newline-delimited JSON API on 127.0.0.1 (port 46321-46340, discovered through
 the registry, the port files, or a scan) which drives LTK Manager's own
@@ -64,7 +64,7 @@ class BridgeCommandError(RuntimeError):
 
 def _bridge_dirs() -> List[Path]:
     """Where the DLL writes its port and token files: the desktop user's
-    local app data (LTK Manager runs as that user, an elevated Anna may not),
+    local app data (LTK Manager runs as that user, an elevated Proteus may not),
     then this process's own."""
     dirs: List[Path] = []
     try:
@@ -177,7 +177,7 @@ def _port_from_file(path) -> Optional[int]:
 
 
 def read_token() -> Optional[str]:
-    """The API token the running bridge published, if Anna can read it."""
+    """The API token the running bridge published, if Proteus can read it."""
     for directory in _bridge_dirs():
         try:
             token = (directory / "token.txt").read_text(encoding="ascii", errors="ignore").strip()
@@ -379,7 +379,7 @@ class LtkBridge:
         """The installed mods.
 
         Raises BridgeCommandError when LTK Manager does not answer with its
-        library: an empty list would read as "nothing installed", and Anna
+        library: an empty list would read as "nothing installed", and Proteus
         would then take every entry for one it just created.
         """
         response = self.list_mods()
@@ -396,7 +396,7 @@ class LtkBridge:
         return self._ok(payload, timeout=IMPORT_TIMEOUT_S)
 
     def import_fantome_bytes(self, data: bytes, name: str) -> Dict[str, Any]:
-        """Install an archive LTK Manager cannot read from Anna's folder, sent inline."""
+        """Install an archive LTK Manager cannot read from Proteus's folder, sent inline."""
         payload: Dict[str, Any] = {
             "cmd": "import",
             "data_b64": base64.b64encode(data).decode("ascii"),

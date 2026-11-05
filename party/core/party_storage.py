@@ -3,7 +3,7 @@
 """
 Party Storage
 Keeps each account's party key across sessions, so the token (and room)
-friends already have keeps working after Anna restarts.
+friends already have keeps working after Proteus restarts.
 """
 
 import json

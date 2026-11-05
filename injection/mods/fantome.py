@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Build a .fantome archive from an extracted mod folder.
 
-Anna extracts mods into folders (``META/info.json`` + ``WAD/...`` + ``RAW/...``)
+Proteus extracts mods into folders (``META/info.json`` + ``WAD/...`` + ``RAW/...``)
 and hands them to LTK Manager's library as a ``.fantome`` archive, so an
 injection repacks the folder as one and sends it over the bridge (see
 injection/tools/bridge.py).
@@ -28,7 +28,7 @@ log = get_logger()
 
 _INFO_PATH = Path("META") / "info.json"
 _METADATA_PATH = Path("metadata.json")
-# Compression used by the .fantome files Anna ships and reads
+# Compression used by the .fantome files Proteus ships and reads
 _COMPRESSION = zipfile.ZIP_DEFLATED
 # The archive only travels to LTK Manager's library on this PC, while the
 # loading screen name's 24 MB text table took 0.46s to pack at the default

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""HTTP client for Anna's pseudonymous analytics activity and presence."""
+"""HTTP client for Proteus's pseudonymous analytics activity and presence."""
 
 from typing import Literal, Optional
 

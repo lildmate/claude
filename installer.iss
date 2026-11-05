@@ -1,12 +1,12 @@
-; Anna Installer Script for Inno Setup
+; Proteus Installer Script for Inno Setup
 ; This creates a proper Windows installer that registers the app
 
-#define MyAppName "Anna"
+#define MyAppName "Proteus"
 #define MyAppVersion "1.5.2"
 #define MyAppVersionInfo "1.5.2.0"
 #define MyAppPublisher "lildmate"
 #define MyAppURL "https://github.com/lildmate/claude"
-#define MyAppExeName "Anna.exe"
+#define MyAppExeName "Proteus.exe"
 #define MyAppDescription "Effortless skin changer for League of Legends"
 ; Must match config.SINGLE_INSTANCE_MUTEX_NAME (used by the app to enforce single-instance)
 #define MyAppMutex "Local\RoseSingleInstance"
@@ -26,7 +26,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=installer
-OutputBaseFilename=Anna_Setup_{#MyAppVersion}
+OutputBaseFilename=Proteus_Setup_{#MyAppVersion}
 SetupIconFile=assets\icon.ico
 Compression=lzma
 SolidCompression=yes
@@ -40,7 +40,7 @@ VersionInfoVersion={#MyAppVersionInfo}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppDescription}
 VersionInfoProductName={#MyAppName}
-; Prevent install/uninstall while Anna is running (mutex is created by the running app)
+; Prevent install/uninstall while Proteus is running (mutex is created by the running app)
 AppMutex={#MyAppMutex}
 
 [Languages]
@@ -53,7 +53,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 ; Main application files
 ; hashes.game.txt is user-managed and must be preserved across installations.
-Source: "dist\Anna\*"; DestDir: "{app}"; Excludes: "injection\tools\hashes.game.txt"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\Proteus\*"; DestDir: "{app}"; Excludes: "injection\tools\hashes.game.txt"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
@@ -68,15 +68,15 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [UninstallRun]
 ; Uninstall Pengu Loader (removes its IFEO activation and disables the native hook)
 Filename: "{app}\_internal\Pengu Loader\Pengu Loader.exe"; Parameters: "--uninstall --silent"; Flags: runhidden waituntilterminated skipifdoesntexist
-; Always remove the Anna auto-start scheduled task (created via schtasks /TN "Anna")
-Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN Anna /F"; Flags: runhidden
+; Always remove the Proteus auto-start scheduled task (created via schtasks /TN "Proteus")
+Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN Proteus /F"; Flags: runhidden
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
 Type: filesandordirs; Name: "{app}\injection\overlay"
 Type: filesandordirs; Name: "{app}\injection\mods"
 ; Remove user data stored in AppData
-; Anna stores user data in %LOCALAPPDATA%\Rose
+; Proteus stores user data in %LOCALAPPDATA%\Rose
 Type: filesandordirs; Name: "{localappdata}\Rose"
 ; Note: State files are now stored in user data directory, not in app directory
 
@@ -207,7 +207,7 @@ const
   IfeoKey = 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\LeagueClientUx.exe';
 
 { Pengu hooks the client with an IFEO debugger: rundll32 "<dir>\core.dll", #6000.
-  If that core.dll is gone (Anna uninstalled or moved), Windows shows a RunDLL
+  If that core.dll is gone (Proteus uninstalled or moved), Windows shows a RunDLL
   "module not found" error on every League start, so remove the dead entry.
   A working Pengu install elsewhere keeps its key. }
 procedure _RemoveDeadPenguIfeo();
@@ -287,7 +287,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
-    { Clean up a dead hook left by an older Anna uninstall }
+    { Clean up a dead hook left by an older Proteus uninstall }
     _RemoveDeadPenguIfeo();
 
     _CleanupLegacyUninstallEntry();

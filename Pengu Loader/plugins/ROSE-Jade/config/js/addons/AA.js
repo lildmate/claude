@@ -432,9 +432,9 @@ import { settingsUtils } from "https://unpkg.com/blank-settings-utils@latest/Set
         {
             groupName: "RoseAA",
             titleKey: "el_RoseAA",
-            titleName: "Anna / AutoAccept",
+            titleName: "Proteus / AutoAccept",
             capitalTitleKey: "el_RoseAA_capital", 
-            capitalTitleName: "Anna / AutoAccept",
+            capitalTitleName: "Proteus / AutoAccept",
             element: [
                 {
                 name: "eaa-settings", 

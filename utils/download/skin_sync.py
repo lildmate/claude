@@ -411,7 +411,7 @@ class SkinSync:
             if not root.is_dir():
                 continue
             for local in list(root.rglob("*")):
-                # Anna's own state and temporary files start with a dot
+                # Proteus's own state and temporary files start with a dot
                 if not local.is_file() or local.name.startswith("."):
                     continue
                 if os.path.normcase(str(local)) in expected:

@@ -403,7 +403,7 @@ class LtkLogReadingTests(LtfSessionTestCase):
         reason = self.report_issue.call_args.kwargs["details"]["reason"]
         self.assertIn("its scan started 0.2s after the client created the game", reason)
         self.assertIn("LTK Manager took 4.3s to build the overlay", reason)
-        self.assertIn("Anna started it 2.2s after the skin was picked", reason)
+        self.assertIn("Proteus started it 2.2s after the skin was picked", reason)
         self.assertEqual(self.reported_causes(), ["late"])
 
     def test_a_restart_forgets_the_previous_build(self):

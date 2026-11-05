@@ -2,9 +2,9 @@ const baseData = [
     {
         groupName: "RoseBackground",
         titleKey: "el_RoseBackground",
-        titleName: "Anna / Background",
+        titleName: "Proteus / Background",
         capitalTitleKey: "el_RoseBackground_capital", 
-        capitalTitleName: "Anna / Background",
+        capitalTitleName: "Proteus / Background",
         element: [
             {
                 name: "bgcm-settings", 

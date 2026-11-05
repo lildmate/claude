@@ -350,7 +350,7 @@
       display: none !important;
       pointer-events: none !important;
     }
-    /* Anna owns chroma selection; keep the native client flyout closed. */
+    /* Proteus owns chroma selection; keep the native client flyout closed. */
     .shared-skin-chroma-modal {
       display: none !important;
       pointer-events: none !important;
@@ -599,7 +599,7 @@
     document.querySelectorAll(".vng-age-rating-container").forEach((el) => el.remove());
   }
 
-  // Rift Classic shows the client's "Disabled" subtitle for unowned skins even after Anna unlocks them.
+  // Rift Classic shows the client's "Disabled" subtitle for unowned skins even after Proteus unlocks them.
   const CLASSIC_ENABLED_LABELS = {
     pt: "Habilitada",
     es: "Habilitada",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Build script for Anna using PyInstaller
+Build script for Proteus using PyInstaller
 Fast builds with Windows UI API support
 """
 
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIN_PYTHON = (3, 11)
 if sys.version_info < MIN_PYTHON:
     sys.stderr.write(
-        f"Anna build scripts require Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer.\n"
+        f"Proteus build scripts require Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer.\n"
         "Please re-run using an updated interpreter.\n"
     )
     sys.exit(1)
@@ -66,7 +66,7 @@ def clean_previous_builds():
 
 
 def build_pengu_loader():
-    """Build the vendored Pengu Loader source before packaging Anna."""
+    """Build the vendored Pengu Loader source before packaging Proteus."""
     print_step(2, 4, "Building Pengu Loader From Source")
 
     script = ROOT / "scripts" / "build_pengu_loader.py"
@@ -108,7 +108,7 @@ def build_with_pyinstaller():
         "pyinstaller",
         "--clean",
         "--noconfirm",
-        "Anna.spec",
+        "Proteus.spec",
     ]
     
     print(f"Running: {' '.join(cmd)}\n")
@@ -126,7 +126,7 @@ def organize_output():
     """Organize output files and verify"""
     print_step(4, 4, "Organizing Output & Verification")
     
-    dist_folder = ROOT / "dist/Anna"
+    dist_folder = ROOT / "dist/Proteus"
     
     if not dist_folder.exists():
         print("[ERROR] Build output not found!")
@@ -137,7 +137,7 @@ def organize_output():
 
 def main():
     """Main build process"""
-    print_header("Anna - PyInstaller Build")
+    print_header("Proteus - PyInstaller Build")
     
     start_time = time.time()
     
@@ -168,7 +168,7 @@ def main():
     
     print_header("[OK] BUILD COMPLETED SUCCESSFULLY!")
     
-    exe_path = ROOT / "dist/Anna/Anna.exe"
+    exe_path = ROOT / "dist/Proteus/Proteus.exe"
     
     if exe_path.exists():
         size_mb = exe_path.stat().st_size / (1024 * 1024)
@@ -187,8 +187,8 @@ def main():
         print(f"  - Good enough against casual theft")
         
         print(f"\nTo test:")
-        print(f"  cd dist\\Anna")
-        print(f"  Anna.exe")
+        print(f"  cd dist\\Proteus")
+        print(f"  Proteus.exe")
     else:
         print("[ERROR] Executable not found!")
         sys.exit(1)

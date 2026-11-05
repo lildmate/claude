@@ -488,7 +488,7 @@ class RelayReconnectTests(unittest.TestCase):
 
     def test_the_update_refusal_says_so(self):
         error = SimpleNamespace(status_code=426)
-        self.assertIn("update Anna", self.module._describe_error(error))
+        self.assertIn("update Proteus", self.module._describe_error(error))
 
     def test_resume_reconnects_a_stopped_room(self):
         self.relay._stopped = True

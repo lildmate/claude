@@ -58,7 +58,7 @@ class CarrierStep:
 
 @dataclass(frozen=True)
 class ModStep:
-    """A mod from Anna's mods storage (a folder or an archive)."""
+    """A mod from Proteus's mods storage (a folder or an archive)."""
     folder_name: str
     source: str
     # The custom skin mod: without it the injection installs nothing

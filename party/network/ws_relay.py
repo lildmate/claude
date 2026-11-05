@@ -37,12 +37,12 @@ RECONNECT_DELAYS = (1.0, 2.0, 5.0, 10.0, 20.0, 30.0)
 # pings never get through (a firewall...) otherwise reconnected every 100s all day
 STABLE_CONNECTION_S = 300.0
 # The relay sends this message when the same player joins the room again:
-# another connection (a second Anna, another PC) now has our place, and the
+# another connection (a second Proteus, another PC) now has our place, and the
 # room stops listening to this one. Relays from before it closed the
 # connection with this reason instead
 REPLACED_EVENT = "replaced"
 REPLACED_REASON = "replaced"
-# The relay refuses an Anna too old for it with this status: no point retrying
+# The relay refuses a Proteus too old for it with this status: no point retrying
 UPDATE_REQUIRED_STATUS = 426
 
 _ssl_contexts_cache: Optional[List[ssl.SSLContext]] = None
@@ -89,7 +89,7 @@ def _describe_error(error: Optional[BaseException]) -> str:
     if status == 409:
         return "this party is full (10 players max)"
     if status == UPDATE_REQUIRED_STATUS:
-        return "this version of Anna is too old for party mode, please update Anna"
+        return "this version of Proteus is too old for party mode, please update Proteus"
     if status:
         return f"the party server answered with HTTP {status}"
     if isinstance(error, asyncio.TimeoutError):
@@ -131,7 +131,7 @@ class PartyRelay:
         # Reconnecting stopped (see _run) until resume()
         self._stopped = False
         # The last connection attempt was refused because the room is full,
-        # or because the relay needs a newer Anna
+        # or because the relay needs a newer Proteus
         self._room_full = False
         self._update_required = False
         # The relay gave our place in the room to another connection of ours
@@ -247,7 +247,7 @@ class PartyRelay:
             log.warning("[RELAY] No relay URL configured")
             return False
 
-        # The version tells the relay's logs which Anna a looping connection comes from
+        # The version tells the relay's logs which Proteus a looping connection comes from
         url = f"{RELAY_URL}/room?key={self.room_key}&v={APP_VERSION}"
         self._room_full = False
         self._update_required = False
@@ -313,7 +313,7 @@ class PartyRelay:
                         self._stop("the room is full")
                         return
                     if self._update_required:
-                        self._stop("the party server needs a newer Anna")
+                        self._stop("the party server needs a newer Proteus")
                         return
                     continue
 

@@ -5,7 +5,7 @@ Helper utilities for interacting with Pengu Loader's command-line interface.
 
 The Pengu Loader CLI manages Pengu's IFEO activation and optionally
 restart the League client when required. This module provides a small wrapper
-around the executable bundled alongside Anna.
+around the executable bundled alongside Proteus.
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ log = get_logger("pengu_loader")
 _SESSION_FILE = get_state_dir() / 'pengu_session.json'
 # core.dll reads its hook switch (disabled, loaderpath) from this file
 _CONFIG_FILE = get_config_file_path()
-# The loader runs elevated: when Anna was elevated with another account's
+# The loader runs elevated: when Proteus was elevated with another account's
 # credentials, its own LocalApplicationData isn't the desktop user's config.ini
 os.environ['ROSE_CONFIG_PATH'] = str(_CONFIG_FILE)
 
@@ -68,7 +68,7 @@ def _sanitize_plugin_entrypoints(pengu_dir: Path) -> None:
 
     Background:
     - Disabling a plugin renames `index.js` -> `index.js_`
-    - In frozen builds, Anna overlays the bundled `Pengu Loader` onto the runtime directory.
+    - In frozen builds, Proteus overlays the bundled `Pengu Loader` onto the runtime directory.
       `copytree(..., dirs_exist_ok=True)` does not delete extra files, so a disabled plugin
       can end up with BOTH `index.js_` and a freshly-copied `index.js`, effectively re-enabling
       (or duplicating) the plugin on next launch.
@@ -119,7 +119,7 @@ def _sanitize_plugin_entrypoints(pengu_dir: Path) -> None:
                             exc,
                         )
     except Exception as exc:
-        # Non-fatal: never block Anna launch for a best-effort cleanup.
+        # Non-fatal: never block Proteus launch for a best-effort cleanup.
         log.debug("Failed to sanitize plugin entrypoints: %s", exc)
 
 
@@ -287,7 +287,7 @@ def _resolve_pengu_dir() -> Path:
         except shutil.Error as exc:
             # copytree copies what it can and lists the rest. A running client
             # keeps core.dll loaded, so it can't be replaced: the hook runs the
-            # loader already here. Running the bundled copy instead made Anna
+            # loader already here. Running the bundled copy instead made Proteus
             # take this one for another loader and leave its hook on at exit.
             if not ((runtime_dir / "Pengu Loader.exe").is_file() and (runtime_dir / "core.dll").is_file()):
                 raise
@@ -306,7 +306,7 @@ def _resolve_pengu_dir() -> Path:
         # Restore plugin enable/disable state after the overlay sync.
         _restore_plugin_enable_state(runtime_dir, enabled_plugins, disabled_plugins)
 
-        # Remove logs from versions that used separate Anna/crash diagnostics.
+        # Remove logs from versions that used separate Proteus/crash diagnostics.
         _remove_legacy_pengu_logs(runtime_dir)
 
     except Exception as exc:
@@ -322,7 +322,7 @@ PENGU_EXE = PENGU_DIR / "Pengu Loader.exe"
 _PENGU_LOG = PENGU_DIR / "pengu.log"
 # The CLI normally answers in well under a second. A hung client, a locked
 # handle or a slow disk can block it forever, and on the cleanup path that
-# leaves Anna unable to exit with the game still suspended.
+# leaves Proteus unable to exit with the game still suspended.
 _CLI_TIMEOUT_S = 15.0
 _LEAGUE_PROCESSES: set[str] = {
     'LeagueClient.exe', 'LeagueClientUx.exe',
@@ -331,7 +331,7 @@ _LEAGUE_PROCESSES: set[str] = {
 }
 _CREATE_NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 _operation_lock = threading.RLock()
-# The clients (LeagueClientUx.exe PIDs) Anna's loader waits to restart until a
+# The clients (LeagueClientUx.exe PIDs) Proteus's loader waits to restart until a
 # safe phase (see retry_deferred_restart). A client started since then loads it.
 _restart_pending: frozenset[int] = frozenset()
 
@@ -493,7 +493,7 @@ def _close_loader_menu() -> None:
         for proc in psutil.process_iter(['pid', 'name']):
             if proc.info.get('name') != PENGU_EXE.name or proc.info.get('pid') == current:
                 continue
-            log.info('Closing the open Pengu Loader window (PID %s) so Anna can toggle Pengu.', proc.info['pid'])
+            log.info('Closing the open Pengu Loader window (PID %s) so Proteus can toggle Pengu.', proc.info['pid'])
             try:
                 proc.terminate()
                 proc.wait(timeout=3)
@@ -634,7 +634,7 @@ def _ensure_loader_config() -> None:
     core.dll skips hooking unless disabled=0 and loads plugins from
     loaderpath. The loader writes both on --install only, so an active hook
     can be left switched off (another account's loader wrote its own
-    config.ini, an older Anna garbled loaderpath, or another Anna's loader
+    config.ini, an older Proteus garbled loaderpath, or another Proteus's loader
     deactivated while ours held the hook).
     """
     loader_dir = str(PENGU_DIR)
@@ -713,10 +713,10 @@ def _session_requires_deactivation(session: dict[str, object]) -> bool:
 
 
 def recover_stale_session(*, adopt_active: bool = False) -> bool:
-    """Recover a previous Anna session.
+    """Recover a previous Proteus session.
 
     During startup, an active Pengu session may still belong to the League
-    process left behind by a crashed Anna instance. If that process is still
+    process left behind by a crashed Proteus instance. If that process is still
     running, keep the activation in place so the next startup does not try to
     deactivate and immediately reactivate against a loaded core.dll.
     """
@@ -775,7 +775,7 @@ def _registered_pengu_core() -> Optional[Path]:
         return None
     try:
         import winreg
-        # The 64-bit view, where Pengu registers it, whatever Anna's own bitness
+        # The 64-bit view, where Pengu registers it, whatever Proteus's own bitness
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, _IFEO_KEY, 0,
                             winreg.KEY_READ | winreg.KEY_WOW64_64KEY) as key:
             debugger, _ = winreg.QueryValueEx(key, "Debugger")
@@ -791,14 +791,14 @@ def _registered_pengu_core() -> Optional[Path]:
 
 
 def _is_bundled_copy(core: Path) -> bool:
-    """The core.dll bundled with this Anna: it ran that copy when it couldn't
+    """The core.dll bundled with this Proteus: it ran that copy when it couldn't
     update the runtime one (older versions did whenever the client was open)."""
     bundled = _get_bundled_pengu_dir()
     return bundled is not None and core.parent.resolve() == bundled.resolve()
 
 
 def _hook_of_another_loader() -> Optional[Path]:
-    """The core.dll the registered hook runs when it isn't ours (another Anna,
+    """The core.dll the registered hook runs when it isn't ours (another Proteus,
     a standalone Pengu), or None."""
     core = _registered_pengu_core()
     if core is None or core.parent.resolve() == PENGU_DIR.resolve() or _is_bundled_copy(core):
@@ -836,8 +836,8 @@ def _external_pengu_with_rose_plugins() -> Optional[Path]:
 
 
 def ensure_active_for_client() -> None:
-    """The client just started: enable Anna's loader if none is active any more
-    (a standalone Pengu disabled while Anna runs). Runs on that event, no polling."""
+    """The client just started: enable Proteus's loader if none is active any more
+    (a standalone Pengu disabled while Proteus runs). Runs on that event, no polling."""
     with _operation_lock:
         if _external_pengu_with_rose_plugins() is not None:
             return
@@ -849,15 +849,15 @@ def ensure_active_for_client() -> None:
         # Both editions share the loader window's mutex: don't close a window
         # the user has open, try again at the next client start
         if _process_running((PENGU_EXE.name,)):
-            log.info('No active Pengu Loader, but its window is open; Anna enables its loader at the next client start.')
+            log.info('No active Pengu Loader, but its window is open; Proteus enables its loader at the next client start.')
             return
         from config import get_config_option
-        log.info('No active Pengu Loader; enabling the loader bundled with Anna.')
+        log.info('No active Pengu Loader; enabling the loader bundled with Proteus.')
         activate_on_start(get_config_option('General', 'clientPath'))
 
 
 def retry_deferred_restart() -> None:
-    """The client reached a safe phase: restart it if Anna's loader still waits
+    """The client reached a safe phase: restart it if Proteus's loader still waits
     for that (the client wasn't ready yet, or a champ select was on)."""
     if not _restart_pending:
         return
@@ -881,8 +881,8 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
     with _operation_lock:
         external = _external_pengu_with_rose_plugins()
         if external is not None:
-            log.info('Using existing external Pengu Loader with Anna plugins: %s', external)
-            # This activation belongs to the user, so Anna must not remove it
+            log.info('Using existing external Pengu Loader with Proteus plugins: %s', external)
+            # This activation belongs to the user, so Proteus must not remove it
             # on exit or replace its registry entry with the bundled loader.
             return _write_session(was_active=True, rose_activated=False)
         if not _is_available():
@@ -902,7 +902,7 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
 
         initial = get_status()
         if initial is PenguStatus.UNKNOWN:
-            log.error('Cannot start Anna Pengu integration because initial status is unknown.')
+            log.error('Cannot start Proteus Pengu integration because initial status is unknown.')
             return False
         if league_path and not set_league_path(league_path):
             log.warning(
@@ -910,8 +910,8 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
                 PENGU_EXE, league_path,
             )
 
-        # A running client loads Anna's plugins only when it starts, so it restarts
-        # whatever state an earlier Anna left the loader in
+        # A running client loads Proteus's plugins only when it starts, so it restarts
+        # whatever state an earlier Proteus left the loader in
         restart_needed = _process_running(('LeagueClientUx.exe',))
         activated_now = False
         if initial is PenguStatus.INACTIVE:
@@ -920,12 +920,12 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
                 return False
             activated_now = True
         elif stale_rose_owned:
-            log.info('Adopted the active Pengu session from the previous Anna process (restart League: %s).',
+            log.info('Adopted the active Pengu session from the previous Proteus process (restart League: %s).',
                      restart_needed)
         else:
             # --status only reports this loader's own core.dll as active, so an
-            # earlier Anna left it on: it's Anna's, and goes when Anna quits
-            log.info("Anna's Pengu Loader was already active; adopting it (restart League: %s).", restart_needed)
+            # earlier Proteus left it on: it's Proteus's, and goes when Proteus quits
+            log.info("Proteus's Pengu Loader was already active; adopting it (restart League: %s).", restart_needed)
         _ensure_loader_config()
 
         if not _write_session(was_active=False, rose_activated=True):
@@ -939,7 +939,7 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
             _restart_pending = (frozenset() if restart_client()
                                 else _process_ids(('LeagueClientUx.exe',)))
             if _restart_pending:
-                log.info('Anna Loader enabled; client restart deferred until the client is ready.')
+                log.info('Proteus Loader enabled; client restart deferred until the client is ready.')
         return True
 
 

@@ -1,6 +1,6 @@
-# Anna – saját verzió
+# Proteus – saját verzió
 
-Az **Anna** a [Rose](https://github.com/Alban1911/Rose) saját példánya
+A **Proteus** a [Rose](https://github.com/Alban1911/Rose) saját példánya
 (az upstream `db1f7e0` commitjából, 1.5.2-es verzió). Az eredeti MIT licences,
 ezért szabadon módosítható és terjeszthető, csak a `LICENSE` fájlban lévő
 eredeti copyright sornak maradnia kell.
@@ -36,15 +36,15 @@ a CI pedig szól, ha elfelejtetted.)
   (színek, méretek) ezekben a fájlokban CSS-ként vannak, pl. a beállítások
   panelé a `ROSE-SettingsPanel/index.js` elején (`.settings-link` stb.).
 - **Fordítások / szövegek:** `Pengu Loader/plugins/ROSE-I18n/`.
-- **App neve: Anna.** Minden látható helyen ez szerepel: tálca, ablakok,
+- **App neve: Proteus.** Minden látható helyen ez szerepel: tálca, ablakok,
   hibaüzenetek, a League kliensben megjelenő szövegek (mind a 21 nyelven),
-  `Anna.exe`, `Anna_Setup_<verzió>.exe`, Program Files\Anna, saját
+  `Proteus.exe`, `Proteus_Setup_<verzió>.exe`, Program Files\Proteus, saját
   Windows-azonosító (AppId), így külön appként települ.
   Belül néhány dolog **szándékosan Rose maradt**:
   - az adatmappa `%LOCALAPPDATA%\Rose` – a Pengu Loader előre lefordított
     `core.dll`-je fixen ezt olvassa, átnevezve a kliensben nem jelenne meg;
   - a pluginmappák (`ROSE-*`) és a belső kódnevek (pl. `window.RoseI18n`);
-  - a „csak egy példány futhat” azonosító, így az Anna és az eredeti Rose
+  - a „csak egy példány futhat” azonosító, így a Proteus és az eredeti Rose
     nem fut egyszerre (ugyanazt az adatmappát használnák).
   Ha az eredeti Rose fel van telepítve, előbb azt távolítsd el.
 
@@ -65,7 +65,7 @@ release**-ét, és ha újabb, felajánlja a frissítést.
 3. GitHubon csinálj egy release-t, aminek a **tag neve pontosan a
    verziószám** (`1.5.3`, `v` nélkül), és töltsd fel hozzá:
    - `installer/update_package_1.5.3.zip` – ezt tölti le az auto-updater
-   - `installer/Anna_Setup_1.5.3.exe` – új telepítéshez
+   - `installer/Proteus_Setup_1.5.3.exe` – új telepítéshez
 
 Az eredeti Rose frissítései innentől **nem jönnek automatikusan**. Ha
 szeretnél átvenni valamit tőlük, azt kézzel kell behúzni az upstream

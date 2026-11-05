@@ -375,16 +375,16 @@ def setup_logging(log_mode: str = 'customer', *, write_logs: bool = True):
             if _CURRENT_LOG_MODE == 'customer':
                 # Clean startup for customer mode
                 if log_file:
-                    logger.info(f"Anna Started (Log: {log_file.name})")
+                    logger.info(f"Proteus Started (Log: {log_file.name})")
                 else:
-                    logger.info("Anna Started (logs disabled)")
+                    logger.info("Proteus Started (logs disabled)")
             else:
                 # Detailed startup for verbose/debug modes
                 logger.info("=" * LOG_SEPARATOR_WIDTH)
                 if log_file:
-                    logger.info(f"Anna - Starting... (Log file: {log_file.name})")
+                    logger.info(f"Proteus - Starting... (Log file: {log_file.name})")
                 else:
-                    logger.info("Anna - Starting... (logs disabled)")
+                    logger.info("Proteus - Starting... (logs disabled)")
                 logger.info("=" * LOG_SEPARATOR_WIDTH)
                 
                 # Log mode information

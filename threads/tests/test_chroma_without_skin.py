@@ -18,7 +18,7 @@ CHROMA_ID_MAP = {
 
 class ChromaWithoutSkinTests(unittest.TestCase):
     """A chroma bought without its skin (Mythic Shop) is in the inventory, so
-    Anna forced it through the client, which refused it, and nothing was
+    Proteus forced it through the client, which refused it, and nothing was
     injected (#73)"""
 
     def setUp(self):

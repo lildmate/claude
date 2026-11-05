@@ -4,12 +4,12 @@
 Overlay Manager
 Drives LTK Manager through the LeagueToolFlop (LTF) bridge.
 
-Anna builds the LTF bridge from native/ltf/ (ltk_launcher.exe +
+Proteus builds the LTF bridge from native/ltf/ (ltk_launcher.exe +
 LeagueToolFlop.dll). The launcher starts LTK Manager hidden with the DLL
 injected, and the DLL serves a TCP API (injection/tools/bridge.py) that
-imports Anna's mod folders into LTK Manager's library and starts LTK
+imports Proteus's mod folders into LTK Manager's library and starts LTK
 Manager's own patcher. The patcher builds the overlay and starts scanning;
-Anna then resumes the game, watches for the end of it, stops the patcher,
+Proteus then resumes the game, watches for the end of it, stops the patcher,
 removes the mods it installed and turns the user's own mods back on.
 
 The patcher only overlays a game the client creates after its scan started,
@@ -22,7 +22,7 @@ Security Notes:
     - subprocess calls use only internal paths (tools_dir, mods_dir) and the
       LTK Manager path from config/known install locations
     - Commands only execute ltk_launcher.exe from the verified tools directory
-    - Mod names are folder names Anna itself extracted into mods_dir
+    - Mod names are folder names Proteus itself extracted into mods_dir
 """
 
 import json
@@ -128,17 +128,17 @@ LTK_PATCHER_ERROR_LINE = re.compile(
 )
 # The longest LTK Manager error kept for a report
 LTK_ERROR_MAX_CHARS = 300
-ALREADY_OPEN_REASON = "LTK Manager is already open without Anna's bridge"
+ALREADY_OPEN_REASON = "LTK Manager is already open without Proteus's bridge"
 # The bridge drives LTK Manager through the remote debugging port (CDP) of its
 # WebView2 window; when that port never answers, every command fails with this
 CDP_FAILURE_MARKER = "cdp unavailable"
-CDP_UNREACHABLE_REASON = "Anna's bridge could not reach LTK Manager's built-in browser (CDP unavailable or timed out)"
+CDP_UNREACHABLE_REASON = "Proteus's bridge could not reach LTK Manager's built-in browser (CDP unavailable or timed out)"
 # Every LTF report's hint ends with it (Troubleshooting recognizes the reports by it)
 LTF_LOGS_HINT = "Details are in C:\\Users\\Public\\ltk_bridge.log, ltk_api.log and ltk_launcher.log."
 
 
 def ltk_failure_cause(reason: str) -> str:
-    """Why the LTF session failed, from the reason Anna reported: what to do
+    """Why the LTF session failed, from the reason Proteus reported: what to do
     about it depends on it (Troubleshooting shows a hint for each)"""
     lowered = reason.lower()
     # Before "import" and "bridge": a failed install or command names them too
@@ -215,7 +215,7 @@ class LtkLogTail:
     @staticmethod
     def log_dir() -> Optional[Path]:
         """LTK Manager's log folder: in the roaming app data of the desktop
-        user it runs as (an elevated Anna may run as another account)."""
+        user it runs as (an elevated Proteus may run as another account)."""
         import os
 
         candidates = []
@@ -377,7 +377,7 @@ class OverlayManager:
         self._update_state(add)
 
     def _untrack(self, removed=(), restored=()) -> None:
-        """Forget the mods Anna removed and the user's mods it turned back on."""
+        """Forget the mods Proteus removed and the user's mods it turned back on."""
         removed, restored = set(removed), set(restored)
         if not removed and not restored:
             return
@@ -389,7 +389,7 @@ class OverlayManager:
         self._update_state(drop)
 
     def _cleanup_stale_installs(self, bridge: LtkBridge) -> None:
-        """Undo what an earlier session left in LTK Manager (Anna crashed or
+        """Undo what an earlier session left in LTK Manager (Proteus crashed or
         was closed before its cleanup ran): remove its mods, turn the user's
         back on. What cannot be undone now stays recorded for the next try."""
         state = self._read_state()
@@ -430,7 +430,7 @@ class OverlayManager:
                 log.debug(f"[INJECT] Could not turn {mod_id} back on: {e}")
         self._untrack(removed, restored)
 
-    # -- the LTK Manager Anna started -----------------------------------------
+    # -- the LTK Manager Proteus started -----------------------------------------
     @staticmethod
     def _process_created(pid: Optional[int]) -> Optional[float]:
         if not pid or not PSUTIL_AVAILABLE:
@@ -441,7 +441,7 @@ class OverlayManager:
             return None
 
     def _register_manager(self, pid: Optional[int]) -> None:
-        """Remember the LTK Manager Anna started: it is the only one Anna closes."""
+        """Remember the LTK Manager Proteus started: it is the only one Proteus closes."""
         if not pid:
             return
         created = self._process_created(pid)
@@ -450,7 +450,7 @@ class OverlayManager:
         self._update_state(lambda state: state.__setitem__("manager", {"pid": pid, "created": created}))
 
     def _is_rose_manager(self, pid: Optional[int]) -> bool:
-        """Whether the LTK Manager with *pid* is one Anna started (this run or before)."""
+        """Whether the LTK Manager with *pid* is one Proteus started (this run or before)."""
         manager = self._read_state()["manager"]
         if not pid or not manager or manager.get("pid") != pid:
             return False
@@ -458,7 +458,7 @@ class OverlayManager:
         return created is None or recorded is None or abs(created - float(recorded)) <= 1.0
 
     def _terminate_manager(self, pid: Optional[int], grace_s: float = 0.0) -> None:
-        """Terminate the LTK Manager *pid* Anna started, if it still runs
+        """Terminate the LTK Manager *pid* Proteus started, if it still runs
         after *grace_s* (the time a requested exit gets to finish)."""
         if not pid or not PSUTIL_AVAILABLE:
             return
@@ -477,18 +477,18 @@ class OverlayManager:
                 proc.wait(timeout=3)
             except psutil.TimeoutExpired:
                 proc.kill()
-            log.info(f"[INJECT] Closed the LTK Manager Anna started (PID {pid})")
+            log.info(f"[INJECT] Closed the LTK Manager Proteus started (PID {pid})")
         except (psutil.Error, OSError) as e:
             log.debug(f"[INJECT] Could not close LTK Manager (PID {pid}): {e}")
 
     def _close_stale_rose_manager(self) -> None:
-        """Close an LTK Manager Anna started whose bridge no longer answers."""
+        """Close an LTK Manager Proteus started whose bridge no longer answers."""
         manager = self._read_state()["manager"]
         if not manager:
             return
         pid = manager.get("pid")
         if self._is_rose_manager(pid) and self._process_created(pid) is not None:
-            log.info(f"[INJECT] The LTK Manager Anna started (PID {pid}) lost its bridge - closing it")
+            log.info(f"[INJECT] The LTK Manager Proteus started (PID {pid}) lost its bridge - closing it")
             self._terminate_manager(pid)
         self._update_state(lambda state: state.__setitem__("manager", None))
 
@@ -561,10 +561,10 @@ class OverlayManager:
                 report_issue(
                     "LTF_MISSING",
                     "error",
-                    "Injection failed: Anna's LTF bridge files are missing.",
+                    "Injection failed: Proteus's LTF bridge files are missing.",
                     details={"missing": f"{LTF_LAUNCHER} + {LTF_BRIDGE_DLL}"},
-                    hint="Reinstall Anna, or restore ltk_launcher.exe and LeagueToolFlop.dll "
-                         "from your antivirus quarantine, then restart Anna.",
+                    hint="Reinstall Proteus, or restore ltk_launcher.exe and LeagueToolFlop.dll "
+                         "from your antivirus quarantine, then restart Proteus.",
                 )
             return None
 
@@ -592,7 +592,7 @@ class OverlayManager:
 
     def _connect_bridge(self, launcher: Path, manager: Path, report: bool,
                         cancelled: Optional[Callable[[], bool]] = None):
-        """The bridge and whether Anna started LTK Manager for it."""
+        """The bridge and whether Proteus started LTK Manager for it."""
         found = find_bridge()
         if found is not None:
             port, hello = found
@@ -602,15 +602,15 @@ class OverlayManager:
                 self._register_manager(pid)
             log.info(
                 f"[INJECT] Reusing the running LTK Manager (bridge on port {port}"
-                f"{', started by Anna' if launched else ''})"
+                f"{', started by Proteus' if launched else ''})"
             )
             return LtkBridge(port, pid=pid), launched
 
         # The bridge only loads into an LTK Manager the launcher starts, and
-        # an LTK Manager Anna did not start is the user's: it stays open
+        # an LTK Manager Proteus did not start is the user's: it stays open
         self._close_stale_rose_manager()
         if self._ltk_manager_running():
-            log.warning("[INJECT] LTK Manager is already open without Anna's bridge - leaving it alone")
+            log.warning("[INJECT] LTK Manager is already open without Proteus's bridge - leaving it alone")
             self._report_ltf_failure(ALREADY_OPEN_REASON, report)
             return None, False
 
@@ -651,7 +651,7 @@ class OverlayManager:
                 log.debug("[INJECT] Stopped waiting for the LTF bridge: the session is no longer wanted")
             else:
                 self._report_ltf_failure(f"the LTF bridge is unreachable ({e})", report)
-            # Started hidden by Anna: it would linger out of sight
+            # Started hidden by Proteus: it would linger out of sight
             self._terminate_manager(pid)
             return None, False
         self._register_manager(bridge.pid or pid)
@@ -677,7 +677,7 @@ class OverlayManager:
             if session is not None:
                 if self._check_bridge(session):
                     return
-                # Anna stopped it after the last game: connect again for this one
+                # Proteus stopped it after the last game: connect again for this one
                 with self._session_lock:
                     if self._early_session is session:
                         self._early_session = None
@@ -726,10 +726,10 @@ class OverlayManager:
             self._end_session(session)
 
     def _end_session(self, session: dict) -> None:
-        """Stop the patcher, remove Anna's mods, turn the user's back on, and
-        close LTK Manager if Anna started it (a running one is the user's).
+        """Stop the patcher, remove Proteus's mods, turn the user's back on, and
+        close LTK Manager if Proteus started it (a running one is the user's).
 
-        Safe to call more than once: Anna's cleanup and the session loop can
+        Safe to call more than once: Proteus's cleanup and the session loop can
         both get here.
         """
         with session["lock"]:
@@ -744,7 +744,7 @@ class OverlayManager:
         if not bridge.alive():
             # Nothing answers to undo anything: the state file keeps it for
             # the next session
-            log.info("[INJECT] The LTF bridge is gone - Anna's mods are removed at the next session")
+            log.info("[INJECT] The LTF bridge is gone - Proteus's mods are removed at the next session")
             if session["launched"]:
                 self._terminate_manager(bridge.pid)
         else:
@@ -786,13 +786,13 @@ class OverlayManager:
         return bridge.alive()
 
     def _stopped_by_rose(self) -> bool:
-        """Whether Anna (or the user) asked to stop the current session."""
+        """Whether Proteus (or the user) asked to stop the current session."""
         if not self.process_manager:
             return False
         return bool(self.process_manager.stopped_by_user or self.process_manager.stopped_by_rose)
 
     def _session_stopped(self, session: dict) -> bool:
-        """Whether the session was stopped (by Anna, the user, or its end)."""
+        """Whether the session was stopped (by Proteus, the user, or its end)."""
         return bool(session["ended"]) or self._stopped_by_rose()
 
     # -- mod installation ---------------------------------------------------
@@ -811,7 +811,7 @@ class OverlayManager:
     @classmethod
     def _created_entries(cls, library: list, before_ids: set, folder: Path, display_name: str) -> list:
         """The entries an import created: new ids only, never one the user
-        already had (it would be removed with Anna's). Name matches first;
+        already had (it would be removed with Proteus's). Name matches first;
         a lone new entry otherwise."""
         new_entries = [e for e in library if e.get("id") and str(e.get("id")) not in before_ids]
         named = [e for e in new_entries if cls._entry_matches(e, folder, display_name)]
@@ -843,21 +843,21 @@ class OverlayManager:
 
     def _track_late_install(self, session: dict, before_ids: set, folder: Path, display_name: str) -> None:
         """Record whatever an import that reported a failure still installed
-        (its answer lost or too late): it is Anna's to remove."""
+        (its answer lost or too late): it is Proteus's to remove."""
         try:
             library = session["bridge"].library()
         except (BridgeUnavailable, BridgeCommandError):
             return
         for entry in self._created_entries(library, before_ids, folder, display_name):
-            log.warning(f"[INJECT] {display_name} was installed although the import failed - Anna removes it after the session")
+            log.warning(f"[INJECT] {display_name} was installed although the import failed - Proteus removes it after the session")
             self._track_installed(session, str(entry.get("id")), folder.name)
 
     def _staging_root(self) -> Path:
         """Where archives wait for LTK Manager to import them.
 
         Not tempfile: Python 3.13 makes its folders private to the elevated
-        Anna, and LTK Manager restarts itself unelevated, so it could not read
-        them. Anna's data folder belongs to the desktop user, who runs it.
+        Proteus, and LTK Manager restarts itself unelevated, so it could not read
+        them. Proteus's data folder belongs to the desktop user, who runs it.
         """
         return self.mods_dir.parent / "ltf_staging"
 
@@ -890,7 +890,7 @@ class OverlayManager:
         return entry
 
     def _remove_unwanted(self, session: dict, mod_ids: List[str]) -> bool:
-        """Remove Anna's mods that are no longer selected (staged for another skin)."""
+        """Remove Proteus's mods that are no longer selected (staged for another skin)."""
         bridge = session["bridge"]
         removed, ok = [], True
         for mod_id in mod_ids:
@@ -917,7 +917,7 @@ class OverlayManager:
     def _install_mods(self, session: dict, mod_names: List[str], folder_dir: Optional[Path] = None,
                       report: bool = True, stopped: Optional[Callable[[], bool]] = None,
                       archives: Optional[Dict[str, Path]] = None) -> bool:
-        """Make Anna's mods in LTK Manager's library exactly the folders
+        """Make Proteus's mods in LTK Manager's library exactly the folders
         *mod_names* (in *folder_dir*, mods_dir by default).
 
         A mod already installed from the same content (staged during the
@@ -1184,7 +1184,7 @@ class OverlayManager:
         """Turn off the user's own enabled mods for this session.
 
         LTK Manager's patcher applies every enabled mod, and the overlay must
-        hold Anna's alone (as mod-tools' did). Each one is recorded before it
+        hold Proteus's alone (as mod-tools' did). Each one is recorded before it
         is turned off, so a crash still turns it back on next session.
         """
         bridge = session["bridge"]
@@ -1259,7 +1259,7 @@ class OverlayManager:
             self._disable_other_mods(session)
 
             if self.process_manager:
-                # Anna's cleanup (user stop, lobby change, shutdown) ends the
+                # Proteus's cleanup (user stop, lobby change, shutdown) ends the
                 # session gracefully instead of killing the manager outright
                 session["stopper"] = lambda: self._end_session(session)
                 self.process_manager.set_session_stopper(session["stopper"])
@@ -1346,7 +1346,7 @@ class OverlayManager:
                     self._check_patcher_verdict(session)  # LTK Manager's verdict on the game
                     break
                 if session["ended"]:
-                    continue  # Anna stopped the session while the callback ran
+                    continue  # Proteus stopped the session while the callback ran
                 if not self._check_bridge(session):
                     session["error"] = "the LTF bridge went away during the game"
                     log.error("[INJECT] The LTF bridge went away - LTK Manager closed")
@@ -1369,7 +1369,7 @@ class OverlayManager:
             self._end_session(session)
 
         if stopped:
-            log.info("[INJECT] LTK patcher stopped by Anna")
+            log.info("[INJECT] LTK patcher stopped by Proteus")
             return 0
         if session["error"]:
             self._report_ltf_failure(session["error"])
@@ -1479,7 +1479,7 @@ class OverlayManager:
         return f"the LTK patcher was started {started:.1f}s ago and is still building the overlay"
 
     def _late_join_detail(self, session: dict) -> str:
-        """Why the patcher came too late, from what Anna saw: when its scan
+        """Why the patcher came too late, from what Proteus saw: when its scan
         started against when the client created the game, and what took the
         time before it ("" when nothing is known)."""
         parts = []
@@ -1502,7 +1502,7 @@ class OverlayManager:
             parts.append(f"LTK Manager took {build:.1f}s to build the overlay")
         staged = session.get("staged_after_s")
         if staged is not None:
-            parts.append(f"Anna started it {staged:.1f}s after the skin was picked")
+            parts.append(f"Proteus started it {staged:.1f}s after the skin was picked")
         return "; ".join(parts)
 
     def _check_patcher_verdict(self, session: dict, value: Optional[dict] = None) -> None:
@@ -1540,7 +1540,7 @@ class OverlayManager:
                     f"LTK Manager's patcher refused the overlay (host verification failed: {described})"
                 )
         # LTK Manager's own verdicts on the game: the overlay turned off by its
-        # integrity scan, an incident after the game. Anna's injection
+        # integrity scan, an incident after the game. Proteus's injection
         # "completes" either way: without these, nothing told the user (#432)
         disabled = session.get("ltk_disabled")
         if disabled and not session.get("disabled_reported"):
@@ -1563,7 +1563,7 @@ class OverlayManager:
         completed cannot be told apart from it giving up, and the bridge
         aliveness already catches the crash case. A stopped patcher ends the
         session only once the game it served has exited: before the game
-        appears, the session waits for it (or for Anna to end it).
+        appears, the session waits for it (or for Proteus to end it).
         """
         value = self._read_patcher_status(session)
         if value is None:
@@ -1710,7 +1710,7 @@ class OverlayManager:
                 'overlay_path': str(self.mods_dir.parent),
                 'mods': '/'.join(mod_names or ()),
             },
-            hint='Free up disk space on the drive containing Anna injection files, then retry the skin.',
+            hint='Free up disk space on the drive containing Proteus injection files, then retry the skin.',
         )
         return True
 
@@ -1721,7 +1721,7 @@ class OverlayManager:
         report = "report it with rose_*.log and those logs"
         cause = ltk_failure_cause(reason)
         if cause == "cdp":
-            return ("Anna drives LTK Manager through the debugging port of its built-in browser, which did not "
+            return ("Proteus drives LTK Manager through the debugging port of its built-in browser, which did not "
                     "answer. Restart your PC, then retry. If it keeps happening, use a regular Windows account (not "
                     f"the built-in Administrator) and check that your antivirus does not block LTK Manager. {logs}")
         if cause == "league_admin":
@@ -1744,10 +1744,10 @@ class OverlayManager:
         if cause == "incident":
             return (f"LTK Manager's incident file says what went wrong in the game and which mods it suspects. {logs}")
         if cause == "start":
-            return ("Anna could not start the LTK patcher. Check that ltk_launcher.exe and LeagueToolFlop.dll "
-                    f"are still in Anna's tools folder: an antivirus may have removed them. {logs}")
+            return ("Proteus could not start the LTK patcher. Check that ltk_launcher.exe and LeagueToolFlop.dll "
+                    f"are still in Proteus's tools folder: an antivirus may have removed them. {logs}")
         if cause == "running":
-            return ("Close LTK Manager (also from the system tray), then retry: Anna starts it with its "
+            return ("Close LTK Manager (also from the system tray), then retry: Proteus starts it with its "
                     f"bridge and closes it again after the game. {logs}")
         if cause == "late":
             return ("The game started before the patcher was scanning: the skin changed in the last seconds "
@@ -1755,16 +1755,16 @@ class OverlayManager:
                     "changes a map file takes seconds), or LTK Manager was slow to start. Pick the skin a few "
                     f"seconds earlier, or retry the next game. {logs}")
         if cause == "refused":
-            return ("LTK Manager's patcher refused to apply the overlay. Update Anna (its launcher starts LTK "
+            return ("LTK Manager's patcher refused to apply the overlay. Update Proteus (its launcher starts LTK "
                     f"Manager the way the patcher expects); if it still happens, {report}. {logs}")
         if cause == "bridge":
             return (f"LTK Manager closed while the game was running. Retry the next game; "
                     f"if it happens every game, {report}. {logs}")
         if cause == "import":
-            return f"Anna could not install the mod into LTK Manager. Free some disk space, then retry. {logs}"
+            return f"Proteus could not install the mod into LTK Manager. Free some disk space, then retry. {logs}"
         if cause == "killed":
             return ("Another program closed LTK Manager, most often an antivirus. "
-                    f"Add Anna's folder to its exclusions, then retry. {logs}")
+                    f"Add Proteus's folder to its exclusions, then retry. {logs}")
         if cause == "crashed":
             return (f"LTK Manager crashed. Retry the next game; if it crashes every game, {report}. {logs}")
         return f"Retry the next game. If it fails every game, {report}. {logs}"

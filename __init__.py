@@ -1,2 +1,2 @@
-# Anna - Modular Skin Injector
+# Proteus - Modular Skin Injector
 # Main package initialization

@@ -1,4 +1,4 @@
-"""Launcher auto-update logic for Anna.
+"""Launcher auto-update logic for Proteus.
 
 Downloads the latest release ZIP from GitHub, stages it under the
 user data directory, and replaces the current installation when running

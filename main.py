@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main entry point for Anna (delegates to main package)
+Main entry point for Proteus (delegates to main package)
 """
 
 import sys

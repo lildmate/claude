@@ -1,1 +1,1 @@
-"""Anna test package."""
+"""Proteus test package."""

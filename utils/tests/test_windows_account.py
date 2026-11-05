@@ -19,7 +19,7 @@ from utils.system.windows_account import (
 
 class WindowsAccountTests(unittest.TestCase):
     """LTK Manager runs with the Windows shell's rights and refuses to patch as
-    administrator: Anna says so at startup (#425)"""
+    administrator: Proteus says so at startup (#425)"""
 
     def check(self, account):
         with patch.object(windows_account, "shell_account", return_value=account), \
@@ -61,7 +61,7 @@ class WindowsAccountTests(unittest.TestCase):
 
 class LeagueClientTests(unittest.TestCase):
     """League set to run as administrator, or a client started so, gets no
-    skin: Anna says so when it connects to the client (#430, #431)"""
+    skin: Proteus says so when it connects to the client (#430, #431)"""
 
     REGULAR_SHELL = ShellAccount(elevated=False, builtin_administrator=False, uac_disabled=False)
 

@@ -7,17 +7,17 @@
 (function initPartyMode() {
   const LOG_PREFIX = "[Rose-PartyMode]";
 
-  // Anna's menu language (ROSE-I18n); English until it has loaded
+  // Proteus's menu language (ROSE-I18n); English until it has loaded
   const t = (text, vars) =>
     window.RoseI18n
       ? window.RoseI18n.t(text, vars)
       : text.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? String(vars[k]) : m));
-  // A message from Anna: its template and values when it has variables
+  // A message from Proteus: its template and values when it has variables
   const tMessage = (message, template, values) => (template ? t(template, values) : t(message));
   let BRIDGE_PORT = 50000;
   let BRIDGE_URL = `ws://127.0.0.1:${BRIDGE_PORT}`;
   const BRIDGE_PORT_STORAGE_KEY = "rose_bridge_port";
-  // Every port Anna's bridge can take (BRIDGE_FIRST_PORT, BRIDGE_PORT_COUNT in pengu/core/skin_monitor.py)
+  // Every port Proteus's bridge can take (BRIDGE_FIRST_PORT, BRIDGE_PORT_COUNT in pengu/core/skin_monitor.py)
   const DISCOVERY_START_PORT = 50000;
   const DISCOVERY_END_PORT = 50099;
 
@@ -33,8 +33,8 @@
   let lobbyButton = null;
   let isVisible = false;
   let panelLocked = false;
-  // The request ("enable", "disable" or "add-peer") Anna hasn't answered yet,
-  // and the token being added, given back to the user if Anna never answers
+  // The request ("enable", "disable" or "add-peer") Proteus hasn't answered yet,
+  // and the token being added, given back to the user if Proteus never answers
   let pendingAction = null;
   let pendingToken = "";
   let currentUIMode = null; // 'lobby' or 'champselect'
@@ -902,7 +902,7 @@
       peersSection.style.display = "none";
     }
 
-    // The toggle waits on Anna's answer to any request still pending
+    // The toggle waits on Proteus's answer to any request still pending
     toggleBtn.disabled = pendingAction !== null;
     if (pendingAction === "enable" || pendingAction === "disable") {
       toggleBtn.innerHTML = `<span class="spinner"></span> ${t(pendingAction === "enable" ? "Enabling..." : "Disabling...")}`;
@@ -911,7 +911,7 @@
     updateButtonState();
   }
 
-  // Anna can't be reached. Marked, so reconnecting clears it
+  // Proteus can't be reached. Marked, so reconnecting clears it
   function showConnectionError(elementId, text) {
     const el = document.getElementById(elementId);
     if (el) el.innerHTML = `<div class="error-msg connection-error">${escapeHtml(text)}</div>`;
@@ -924,7 +924,7 @@
     }
   }
 
-  // Give the controls back after a request Anna will not answer (the
+  // Give the controls back after a request Proteus will not answer (the
   // connection to it dropped), keeping the panel as it is. The token being
   // added goes back in its field, so trying again is one click
   function releasePendingAction(message) {
@@ -951,7 +951,7 @@
     if (message) showConnectionError(action === "add-peer" ? "add-peer-message" : "party-toggle-message", message);
   }
 
-  // Anna's party state settles a request whose answer was lost
+  // Proteus's party state settles a request whose answer was lost
   function settlePendingAction() {
     if (
       (pendingAction === "enable" && partyState.enabled) ||
@@ -966,7 +966,7 @@
     const action = partyState.enabled ? "disable" : "enable";
     if (pendingAction) return;
     if (!sendBridgeAction({ type: `party-${action}` })) {
-      showConnectionError("party-toggle-message", t("Anna is not reachable. Check that Anna is running, then try again."));
+      showConnectionError("party-toggle-message", t("Proteus is not reachable. Check that Proteus is running, then try again."));
       return;
     }
     pendingAction = action;
@@ -1005,7 +1005,7 @@
     }
     if (pendingAction) return;
     if (!sendBridgeAction({ type: "party-add-peer", token: token })) {
-      showConnectionError("add-peer-message", t("Anna is not reachable. Check that Anna is running, then try again."));
+      showConnectionError("add-peer-message", t("Proteus is not reachable. Check that Proteus is running, then try again."));
       return;
     }
 
@@ -1026,7 +1026,7 @@
   // Global function for remove button onclick
   window.rosePartyRemovePeer = function (summonerId) {
     if (!sendBridgeAction({ type: "party-remove-peer", summoner_id: summonerId })) {
-      showConnectionError("add-peer-message", t("Anna is not reachable. Check that Anna is running, then try again."));
+      showConnectionError("add-peer-message", t("Proteus is not reachable. Check that Proteus is running, then try again."));
     }
   };
 
@@ -1174,8 +1174,8 @@
     bridgeSocket.onclose = () => {
       console.log(`${LOG_PREFIX} Bridge disconnected, reconnecting...`);
       bridgeReady = false;
-      // Anna won't answer what it was asked on this connection
-      releasePendingAction(t("Lost the connection to Anna. Check that Anna is running, then try again."));
+      // Proteus won't answer what it was asked on this connection
+      releasePendingAction(t("Lost the connection to Proteus. Check that Proteus is running, then try again."));
       setTimeout(connectBridge, 1000);
     };
 
@@ -1192,7 +1192,7 @@
     }
   }
 
-  // Send a request the user made. Never queued: when Anna isn't reachable,
+  // Send a request the user made. Never queued: when Proteus isn't reachable,
   // the user is told and can try again, rather than the request going out
   // later on a new connection after they gave up on it
   function sendBridgeAction(msg) {

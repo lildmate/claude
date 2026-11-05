@@ -227,7 +227,7 @@ class DiscoverPortTests(unittest.TestCase):
 
 
 class CommandShapeTests(TokenTestCase):
-    """Anna sends the commands the LTF controller protocol defines"""
+    """Proteus sends the commands the LTF controller protocol defines"""
 
     def setUp(self):
         super().setUp()
