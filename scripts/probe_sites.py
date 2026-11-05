@@ -1,58 +1,46 @@
 #!/usr/bin/env python3
-"""Temporary: which deeplol.gg API calls its champion pages make (run on CI)."""
+"""Temporary: deeplol.gg 16.22 data, and matchup builds on op.gg / lolalytics (run on CI)."""
 
-import json
+import re
 import sys
-import time
 
 import requests
-from playwright.sync_api import sync_playwright
 
-PAGES = [
-    "https://www.deeplol.gg/champions/chogath/build/top",
-    "https://www.deeplol.gg/champions/chogath/counter/top",
-    "https://www.deeplol.gg/champions/chogath/build/top/sejuani",
-    "https://www.deeplol.gg/champions/chogath/build/top?enemy=sejuani",
-]
-HEADERS = {"User-Agent": "Mozilla/5.0", "Origin": "https://www.deeplol.gg", "Referer": "https://www.deeplol.gg/"}
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
+      "Accept-Language": "en-US,en;q=0.9"}
+DL = {"User-Agent": "Mozilla/5.0", "Origin": "https://www.deeplol.gg", "Referer": "https://www.deeplol.gg/"}
 
-seen = []
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page()
-    page.on("request", lambda r: seen.append(r.url) if "b2c-api" in r.url else None)
-    for url in PAGES:
-        before = len(seen)
-        try:
-            resp = page.goto(url, wait_until="domcontentloaded", timeout=45000)
-            time.sleep(7)
-            print("PAGE", url, "->", resp.status if resp else None, "| final", page.url)
-            text = page.inner_text("body")
-            i = text.find("Sejuani")
-            print("   sejuani mention:", text[max(0, i - 200): i + 400].replace("\n", " | ") if i >= 0 else "none")
-        except Exception as e:
-            print("PAGE", url, "failed", repr(e))
-        for u in seen[before:]:
-            print("   API", u)
-    # clickable matchup controls on the build page
+print("== deeplol 16.22 ==")
+for path, params in [("/champion/rank", {"platform_id": "KR", "tier": "Emerald+", "game_version": "16.22"}),
+                     ("/champion/build", {"platform_id": "KR", "champion_id": 122, "game_version": "16.22", "tier": "Emerald+"}),
+                     ("/champion/rank", {"platform_id": "KR", "tier": "Emerald+", "game_version": "16.21"})]:
+    r = requests.get("https://b2c-api-cdn.deeplol.gg" + path, params=params, headers=DL, timeout=20)
+    t = r.text
+    print(path, params.get("game_version"), r.status_code, len(t), t[:300])
     try:
-        page.goto(PAGES[0], wait_until="domcontentloaded", timeout=45000)
-        time.sleep(6)
-        for sel in ["text=Counter", "text=Matchup", "text=VS", "text=vs"]:
-            n = page.locator(sel).count()
-            print("selector", sel, n)
+        d = r.json()
+        if "champion_data_list" in d:
+            ranked = sum(1 for c in d["champion_data_list"] for p in (c.get("performance_dict") or {}).values() if p and p.get("rank"))
+            print("   champions", len(d["champion_data_list"]), "ranked entries", ranked)
+        if "build_by_lane" in d:
+            print("   lanes", {k: len(v.get("build_lst") or []) for k, v in d["build_by_lane"].items()})
     except Exception as e:
-        print("controls failed", repr(e))
-    browser.close()
+        print("   not json", e)
 
-print("=" * 80)
-for u in sorted(set(seen)):
-    if any(k in u for k in ("riot_data", "notice", "season", "riot-status", "item-info", "champion-info")):
-        continue
-    try:
-        r = requests.get(u, headers=HEADERS, timeout=20)
-        print("FETCH", u, r.status_code)
-        print("   ", json.dumps(r.json(), ensure_ascii=False)[:1500])
-    except Exception as e:
-        print("FETCH", u, "failed", repr(e))
+for url in ["https://op.gg/lol/champions/darius/build/top?target_champion=garen",
+            "https://op.gg/lol/champions/darius/build/top",
+            "https://op.gg/lol/champions/darius/counters/top?target_champion=garen",
+            "https://lolalytics.com/lol/darius/vs/garen/build/",
+            "https://lolalytics.com/lol/darius/build/"]:
+    print("=" * 90)
+    r = requests.get(url, headers=UA, timeout=30)
+    t = r.text
+    print(url, r.status_code, len(t))
+    for kw in ("Conqueror", "Stridebreaker", "Black Cleaver", "Sterak", "Garen", "target_champion", "games", "Win Rate"):
+        print(f"   {kw!r}: {t.count(kw)}")
+    items = re.findall(r'alt="([A-Z][A-Za-z\' ]{3,30})"', t)
+    print("   alts:", items[:40])
+    m = re.search(r'Garen.{0,300}', t)
+    if m:
+        print("   garen ctx:", m.group(0)[:300].replace("\n", " "))
 sys.exit(0)
