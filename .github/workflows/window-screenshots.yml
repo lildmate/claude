@@ -1,0 +1,49 @@
+name: Window screenshots
+
+# Screenshots of the Proteus window with live skins and patch notes, pushed to
+# the "screenshots" branch. Run by hand: Actions -> Window screenshots.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - scripts/window_screenshots.py
+      - .github/workflows/window-screenshots.yml
+
+permissions: {}
+
+concurrency:
+  group: window-screenshots
+  cancel-in-progress: true
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write  # push the screenshots branch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m pip install --quiet requests pillow playwright==1.48.0
+          python -m playwright install --with-deps chromium
+      - name: Take the screenshots
+        run: python scripts/window_screenshots.py shots
+      - name: Push them to the screenshots branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd shots
+          git init -q -b screenshots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Window screenshots"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" screenshots
