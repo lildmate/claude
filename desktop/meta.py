@@ -32,6 +32,8 @@ POSITION_KEYS = {key for key, _ in POSITIONS}
 # deeplol's tier number -> the letter players know
 TIER_LETTERS = {0: "OP", 1: "S", 2: "A", 3: "B", 4: "C", 5: "D"}
 PAGE_PREFIX = "Proteus"
+# A patch's tier list counts once this many champion/position entries are ranked
+MIN_RANKED_ENTRIES = 50
 
 
 class DeepLol:
@@ -55,17 +57,33 @@ class DeepLol:
             self._cache[key] = (now, data)
         return data
 
-    def version(self) -> str:
-        """The newest patch with enough games (deeplol lists the current one first only once filled)."""
+    def versions(self) -> Tuple[str, List[str]]:
+        """The live patch, and the patches to try for statistics, newest first.
+
+        deeplol.gg names the live patch (recent_version) but lists it among
+        its statistics only once enough games are in: the live one is tried
+        first all the same, then the listed ones.
+        """
         data = self._json("/champion/version", cnt=2)
-        versions = data.get("game_version_list") or []
-        if not versions:
+        listed = [str(v) for v in data.get("game_version_list") or []]
+        current = str(data.get("recent_version") or (listed[0] if listed else ""))
+        if not current:
             raise RuntimeError("deeplol.gg lists no patch")
-        return str(versions[0])
+        return current, [current] + [v for v in listed if v != current]
 
     def tier_list(self) -> dict:
-        version = self.version()
-        data = self._json("/champion/rank", platform_id=REGION, tier=RANK, game_version=version)
+        current, candidates = self.versions()
+        best = None  # (ranked entries, version, data): the fullest patch when none reaches the bar
+        for candidate in candidates:
+            candidate_data = self._json("/champion/rank", platform_id=REGION, tier=RANK, game_version=candidate)
+            ranked = sum(1 for c in candidate_data.get("champion_data_list") or []
+                         for p in (c.get("performance_dict") or {}).values() if p and p.get("rank"))
+            if best is None or ranked > best[0]:
+                best = (ranked, candidate, candidate_data)
+            if ranked >= MIN_RANKED_ENTRIES:
+                best = (ranked, candidate, candidate_data)
+                break
+        _, version, data = best
         positions: Dict[str, List[dict]] = {key: [] for key, _ in POSITIONS}
         for champ in data.get("champion_data_list") or []:
             try:
@@ -87,21 +105,26 @@ class DeepLol:
                 })
         for entries in positions.values():
             entries.sort(key=lambda e: e["rank"])
-        return {"source": "deeplol.gg", "version": version, "region": REGION, "rank": RANK,
+        return {"source": "deeplol.gg", "version": version, "currentVersion": current, "region": REGION, "rank": RANK,
                 "positions": [{"key": key, "name": name, "champions": positions[key]} for key, name in POSITIONS]}
 
     def builds(self, champion_id: int) -> dict:
-        version = self.version()
-        data = self._json("/champion/build", platform_id=REGION, champion_id=int(champion_id),
-                          game_version=version, tier=RANK)
-        lanes = []
-        for key, name in POSITIONS:
-            lane = (data.get("build_by_lane") or {}).get(key) or {}
-            builds = [parse_build(b) for b in lane.get("build_lst") or []]
-            builds = [b for b in builds if b]
-            if builds:
-                lanes.append({"key": key, "name": name, "builds": builds})
-        return {"source": "deeplol.gg", "version": version, "championId": int(champion_id), "lanes": lanes}
+        current, candidates = self.versions()
+        lanes, version = [], candidates[-1]
+        for version in candidates:
+            data = self._json("/champion/build", platform_id=REGION, champion_id=int(champion_id),
+                              game_version=version, tier=RANK)
+            lanes = []
+            for key, name in POSITIONS:
+                lane = (data.get("build_by_lane") or {}).get(key) or {}
+                builds = [parse_build(b) for b in lane.get("build_lst") or []]
+                builds = [b for b in builds if b]
+                if builds:
+                    lanes.append({"key": key, "name": name, "builds": builds})
+            if lanes:
+                break
+        return {"source": "deeplol.gg", "version": version, "currentVersion": current,
+                "championId": int(champion_id), "lanes": lanes}
 
 
 def parse_build(raw: dict) -> Optional[dict]:

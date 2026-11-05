@@ -490,7 +490,10 @@
         h("td", { text: c.winRate + "%" }),
         h("td", { class: "muted", text: c.pickRate + "%" }),
         h("td", { class: "muted", text: c.banRate + "%" }))))));
-    return page("Tier list", cs,
+    const old = data.version !== data.currentVersion
+      ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " adatai látszanak." })
+      : null;
+    return page("Tier list", cs, old,
       h("div", { class: "card" },
         h("div", { class: "section-head" }, tabs,
           h("span", { class: "muted small", text: "Forrás: " + data.source + " · " + data.region + " " + data.rank + " · patch " + data.version })),
@@ -543,7 +546,10 @@
     draw();
     const laneTabs = h("div", { class: "chips", role: "group", "aria-label": "Pozíció" }, data.lanes.map((l) =>
       h("a", { class: "chip chip-link" + (l.key === lane.key ? " on" : ""), href: "#/build/" + data.championId + "/" + l.key, text: l.name })));
-    return page((data.championName || "Build") + " build",
+    const oldBuild = data.version !== data.currentVersion
+      ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " buildje látszik." })
+      : null;
+    return page((data.championName || "Build") + " build", oldBuild,
       h("div", { class: "card build-head" }, picture(data.championIcon, "pn-icon big", ""), laneTabs,
         h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version })),
       box);

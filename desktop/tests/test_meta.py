@@ -16,6 +16,11 @@ BUILD = {"build_by_lane": {"Middle": {"build_lst": [{
     "skill": {"build": [1, 2, 3], "detail": [2, 1, 3, 1]}}, {"rune": {"main_build": [1]}}]}}}
 
 
+LIVE = {"ready": False}
+RANK_LIVE = {"champion_data_list": [
+    {"champion_id": i, "performance_dict": {"Middle": {"tier": 2, "win_rate": 0.5, "rank": i}}} for i in range(1, 61)]}
+
+
 class FakeResponse:
     def __init__(self, data, status_code=200):
         self._data, self.status_code = data, status_code
@@ -26,9 +31,10 @@ class FakeResponse:
 
 def fake_get(url, params):
     if url.endswith("/champion/version"):
-        return FakeResponse({"game_version_list": ["16.21", "16.20"]})
+        return FakeResponse({"recent_version": "16.22", "game_version_list": ["16.21", "16.20"]})
     if url.endswith("/champion/rank"):
-        assert params["game_version"] == "16.21"
+        if params["game_version"] == "16.22":
+            return FakeResponse(RANK_LIVE if LIVE["ready"] else {"champion_data_list": []})
         return FakeResponse(RANK)
     if url.endswith("/champion/build"):
         return FakeResponse(BUILD)
@@ -44,6 +50,15 @@ class DeepLolTests(unittest.TestCase):
         self.assertEqual(positions["Middle"][0], {"championId": 103, "tier": "S", "tierNumber": 1, "rank": 5,
                                                   "rankDelta": 0, "winRate": 51.4, "pickRate": 4.7, "banRate": 0.8})
         self.assertNotIn("Total", positions)
+        self.assertEqual(data["currentVersion"], "16.22")
+
+    def test_the_live_patch_once_it_has_enough_games(self):
+        LIVE["ready"] = True
+        try:
+            data = DeepLol(fake_get).tier_list()
+        finally:
+            LIVE["ready"] = False
+        self.assertEqual(data["version"], "16.22")
 
     def test_builds_skip_incomplete_ones(self):
         data = DeepLol(fake_get).builds(103)
