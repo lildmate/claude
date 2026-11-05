@@ -225,3 +225,10 @@ a.btn.primary { color: #141109; }
   .skins-layout { flex-direction: column; }
   .champ-panel { width: 100%; position: static; max-height: 320px; }
 }
+
+/* rank chips in "Profil szerkesztése": each tier's colour */
+.rank-chip.rank-iron { color: #a19d94; } .rank-chip.rank-bronze { color: #c08a5a; } .rank-chip.rank-silver { color: #b7c3cc; }
+.rank-chip.rank-gold { color: #e6c36a; } .rank-chip.rank-platinum { color: #5fc4b8; } .rank-chip.rank-emerald { color: #3fbf75; }
+.rank-chip.rank-diamond { color: #7aa4f5; } .rank-chip.rank-master { color: #c27ae8; } .rank-chip.rank-grandmaster { color: #e8615a; }
+.rank-chip.rank-challenger { color: #f2d27a; }
+.rank-chip.on { color: var(--bg, #0b1220); }

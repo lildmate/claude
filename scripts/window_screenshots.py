@@ -22,6 +22,7 @@ out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 tmp = Path(tempfile.mkdtemp())
 history = {"103": 103015}
+settings = {"windowOnStart": True, "rankDisplay": {"tier": "CHALLENGER", "division": "I"}}
 game = GameData(None, cache_dir=tmp / "cache")
 favorites = Favorites(tmp / "fav.json")
 for skin in (103015, 157009, 99007, 222020):
@@ -29,8 +30,8 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.11.0", open_folder=lambda w: True,
-             settings={"get": lambda: {"windowOnStart": True}, "set": lambda b: None},
+             version="1.12.0", open_folder=lambda w: True,
+             settings={"get": lambda: dict(settings), "set": settings.update},
              patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
 server = AppServer(api)
 server.start()
@@ -60,6 +61,9 @@ with sync_playwright() as p:
     page.goto(server.url.split("#")[0] + "#/build/122/Top/86")
     page.wait_for_timeout(10000)
     page.screenshot(path=str(out / "7_darius_vs_garen.png"), full_page=True)
+    page.goto(server.url.split("#")[0] + "#/profile")
+    page.wait_for_timeout(3000)
+    page.screenshot(path=str(out / "8_profil_szerkesztese.png"))
     browser.close()
 server.stop()
 print("saved", sorted(x.name for x in out.iterdir()))

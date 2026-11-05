@@ -47,11 +47,17 @@ def _settings():
 
     def get():
         value = (get_config_option(*WINDOW_ON_START_OPTION, "true") or "true").strip().lower()
-        return {"windowOnStart": value not in ("0", "false", "no", "off")}
+        from . import rank_display
+
+        return {"windowOnStart": value not in ("0", "false", "no", "off"), "rankDisplay": rank_display.own()}
 
     def put(body: dict):
         if "windowOnStart" in body:
             set_config_option(*WINDOW_ON_START_OPTION, "true" if body["windowOnStart"] else "false")
+        if "rankDisplay" in body:
+            from . import rank_display
+
+            rank_display.set_own(body["rankDisplay"])
 
     return {"get": get, "set": put}
 

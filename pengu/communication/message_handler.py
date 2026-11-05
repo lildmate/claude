@@ -150,6 +150,12 @@ class MessageHandler:
             port: Server port
         """
         self.shared_state = shared_state
+        try:
+            from desktop import rank_display
+
+            rank_display.on_change(self._send_rank_display)
+        except Exception as e:
+            log.debug(f"[Profile] Shown ranks unavailable: {e}")
         # Worker thread for BACKGROUND_MESSAGE_TYPES, started on first use
         self._background_queue: Optional[queue.Queue] = None
         self._background_lock = threading.Lock()
@@ -334,6 +340,8 @@ class MessageHandler:
             self._handle_party_remove_peer(payload)
         elif payload_type == "party-get-state":
             self._handle_party_get_state(payload)
+        elif payload_type == "rank-display-get":
+            self._send_rank_display()
         elif payload.get("skin"):
             # Handle skin detection message
             self._handle_skin_detection(payload)
@@ -3504,6 +3512,15 @@ class MessageHandler:
 
         except Exception as e:
             log.error(f"[PARTY] Error handling remove peer: {e}")
+
+    def _send_rank_display(self) -> None:
+        """The ranks the PROTEUS-Profile plugin shows (see desktop.rank_display)."""
+        try:
+            from desktop import rank_display
+
+            self._send_response(json.dumps({"type": "rank-display", **rank_display.overrides()}))
+        except Exception as e:
+            log.warning(f"[Profile] Could not send the shown ranks: {e}")
 
     def _handle_party_get_state(self, payload: dict) -> None:
         """Handle get party state request"""

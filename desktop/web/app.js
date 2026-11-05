@@ -700,10 +700,45 @@
         h("td", { class: "muted", text: ago(m.createdAt) }))))));
   }
 
+  // -- the rank shown in the client (only to Proteus users) ---------------------------
+  const TIERS = [["IRON", "Iron"], ["BRONZE", "Bronze"], ["SILVER", "Silver"], ["GOLD", "Gold"], ["PLATINUM", "Platinum"],
+    ["EMERALD", "Emerald"], ["DIAMOND", "Diamond"], ["MASTER", "Master"], ["GRANDMASTER", "Grandmaster"], ["CHALLENGER", "Challenger"]];
+  const APEX = ["MASTER", "GRANDMASTER", "CHALLENGER"];
+
+  async function rankEditCard() {
+    let current = null;
+    try { current = (await api("/api/settings")).rankDisplay || null; } catch (e) { /* shown as off */ }
+    const card = h("div", { class: "card" });
+    const save = async (value) => {
+      try {
+        current = (await api("/api/settings", { rankDisplay: value })).rankDisplay || null;
+        draw();
+        toast(current ? "Mentve: a kliensben és a party barátaidnál ez látszik." : "Kikapcsolva: a valódi rangod látszik.");
+      } catch (e) { toast("Nem sikerült menteni"); }
+    };
+    function draw() {
+      const tier = current ? current.tier : null;
+      card.replaceChildren(
+        h("div", { class: "section-head" }, h("h2", { text: "Profil szerkesztése: megjelenített rang" }),
+          h("span", { class: "muted small", text: "Csak a Proteus-t használók látják (te és a party mode barátaid). A Riot és a többi játékos a valódit látja." })),
+        h("div", { class: "chips", role: "group", "aria-label": "Rang" },
+          h("button", { class: "chip" + (!tier ? " on" : ""), text: "Valódi rangom", onclick: () => save(null) }),
+          TIERS.map(([key, name]) => h("button", { class: "chip rank-chip rank-" + key.toLowerCase() + (tier === key ? " on" : ""),
+            "aria-pressed": tier === key ? "true" : "false", text: name,
+            onclick: () => save({ tier: key, division: APEX.includes(key) ? "I" : (current && current.division) || "I" }) }))),
+        tier && !APEX.includes(tier) ? h("div", { class: "chips", role: "group", "aria-label": "Divízió" },
+          ["IV", "III", "II", "I"].map((d) => h("button", { class: "chip" + (current.division === d ? " on" : ""), text: d,
+            onclick: () => save({ tier, division: d }) }))) : null,
+        h("div", { class: "muted small", text: "A lobbyban és a profilodon látszik. A betöltőképernyőt a játék rajzolja, azt ez nem változtatja meg." }));
+    }
+    draw();
+    return card;
+  }
+
   async function renderProfile() {
-    const p = await api("/api/profile");
+    const [p, rankEdit] = await Promise.all([api("/api/profile"), rankEditCard()]);
     if (!p.connected) {
-      return page("Profil", h("div", { class: "card empty", text: "Indítsd el a League klienst, és itt megjelenik a profilod és a meccstörténeted." }));
+      return page("Profil", rankEdit, h("div", { class: "card empty", text: "Indítsd el a League klienst, és itt megjelenik a profilod és a meccstörténeted." }));
     }
     const s = p.summoner || {};
     const head = h("div", { class: "card profile-head" }, picture(s.icon, "", ""),
@@ -714,6 +749,7 @@
       h("div", { class: "stat-sub", text: r && (r.wins + r.losses) ? r.wins + " győzelem · " + r.losses + " vereség · " + r.winrate + "%" : "Ebben a szezonban még nem játszottál" }));
     return page("Profil", head,
       h("div", { class: "cards" }, rankCard("Ranked Solo/Duo", (p.ranked || {}).solo), rankCard("Ranked Flex", (p.ranked || {}).flex)),
+      rankEdit,
       h("div", { class: "card" }, h("div", { class: "section-head" }, h("h2", { text: "Meccstörténet" })), matchTable(p.matches || [])));
   }
 

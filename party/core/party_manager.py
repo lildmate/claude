@@ -19,6 +19,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 from lcu import LCU
 from state import SharedState
 from utils.core.i18n import Text
+from desktop import rank_display
 from utils.core.logging import get_logger
 
 from ..network.ws_relay import PartyRelay, compute_room_key
@@ -106,6 +107,10 @@ class PartyManager:
         self._on_state_change: Optional[Callable[[PartyState], None]] = None
         self._on_peer_update: Optional[Callable[[int, dict], None]] = None
 
+        # The rank we show to the party (see desktop.rank_display)
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        rank_display.on_change(self._on_rank_display_change)
+
     @property
     def enabled(self) -> bool:
         return self.party_state.enabled
@@ -131,6 +136,7 @@ class PartyManager:
             return await self._enable()
 
     async def _enable(self) -> str:
+        self._loop = asyncio.get_running_loop()
         if self.party_state.enabled:
             return self._fresh_token() or ""
 
@@ -200,6 +206,7 @@ class PartyManager:
         self._skin_state = None
         self._published_state = None
         self.party_state.clear_all()
+        rank_display.set_peers({})
         self._my_key = None
         self._home_room = None
 
@@ -380,6 +387,9 @@ class PartyManager:
         if self._ignored_peers:
             # The friends we removed hide us too (see _merged_members)
             state["removed"] = sorted(self._ignored_peers)
+        profile = rank_display.own()
+        if profile:
+            state["profile"] = profile
         if state:
             state["sent_at"] = int(time.time() * 1000)
         else:
@@ -469,6 +479,11 @@ class PartyManager:
                     self._skin_collector.update_from_peer(selection)
             else:
                 self.party_state.clear_peer_skin(sid)
+
+        rank_display.set_peers({
+            sid: (member.get("skin") or {}).get("profile") if isinstance(member.get("skin"), dict) else None
+            for sid, (member, _) in merged.items()
+        })
 
         for sid in [sid for sid in list(self.party_state.peers) if sid not in merged]:
             name = self.party_state.peers[sid].summoner_name
@@ -570,6 +585,14 @@ class PartyManager:
                 break
             except Exception as e:
                 log.info(f"[PARTY] Skin broadcast error: {e}")
+
+    def _on_rank_display_change(self):
+        """Our shown rank changed (in the window): send it to the party."""
+        loop = self._loop
+        published = (self._published_state or {}).get("profile")
+        if not self.party_state.enabled or loop is None or published == rank_display.own():
+            return
+        asyncio.run_coroutine_threadsafe(self._publish_state(), loop)
 
     def _resume_rooms(self):
         """Reconnect the rooms we stopped reconnecting to (see PartyRelay._run)."""
