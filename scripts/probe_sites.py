@@ -8,8 +8,8 @@ import time
 from playwright.sync_api import sync_playwright
 
 PAGES = [
-    "https://www.onetricks.gg/champions/ranking/Soraka",
-    "https://www.onetricks.gg/players/Ho5TLIWb6Y4Q5xPaObmmRudUp6G5u7DEtjxiiEAbryika3USKkD5LCrV1b4LNlSkx5H8ziRTD7_3_w",
+    "https://www.deeplol.gg/champions",
+    "https://www.deeplol.gg/champions/ahri/build",
 ]
 
 
@@ -22,8 +22,16 @@ def main():
             locale="en-US", viewport={"width": 1400, "height": 1000})
         page = context.new_page()
         api_calls = []
-        page.on("response", lambda r: api_calls.append((r.status, r.url, r.headers.get("content-type", "")))
-                if ("json" in r.headers.get("content-type", "") or "/api" in r.url) else None)
+        def on_response(r):
+            ctype = r.headers.get("content-type", "")
+            if "json" in ctype or "/api" in r.url:
+                body = ""
+                try:
+                    body = r.text()[:700]
+                except Exception:
+                    pass
+                api_calls.append((r.status, r.url, ctype, body))
+        page.on("response", on_response)
         for url in PAGES:
             print("=" * 100)
             api_calls.clear()
@@ -37,7 +45,7 @@ def main():
             text = page.inner_text("body") if page.query_selector("body") else ""
             print("html", len(html), "text", len(text))
             print("---- visible text ----")
-            print(text[:5000])
+            print(text[:3500])
             print("---- json/api responses ----")
             for c in api_calls[:40]:
                 print("  ", c)
