@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><defs>
+<linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#E6C684"/><stop offset=".52" stop-color="#BE9148"/><stop offset="1" stop-color="#7A5220"/>
+</linearGradient>
+<linearGradient id="iris" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#35CDB6"/><stop offset=".45" stop-color="#1586B5"/><stop offset="1" stop-color="#4F30B5"/>
+</linearGradient>
+<linearGradient id="greyA" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#939BA8"/><stop offset="1" stop-color="#565D6A"/>
+</linearGradient>
+<linearGradient id="greyB" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#6F7784"/><stop offset="1" stop-color="#3E4551"/>
+</linearGradient>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#0B1A30"/><stop offset="1" stop-color="#030812"/>
+</linearGradient>
+<linearGradient id="wave1" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#0E4A5D"/><stop offset="1" stop-color="#072036"/>
+</linearGradient>
+<linearGradient id="wave2" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#146A73"/><stop offset="1" stop-color="#08263C"/>
+</linearGradient>
+</defs><path d="M256 16 L190 130 L226 116 L226 244 C184 244 142 218 142 166 L142 32 L50 134 L84 120 L84 170 C84 262 150 318 226 322 L226 420 L200 452 L256 500 Z M256 16 L322 130 L286 116 L286 244 C328 244 370 218 370 166 L370 32 L462 134 L428 120 L428 170 C428 262 362 318 286 322 L286 420 L312 452 L256 500 Z" fill="#030812" stroke="#030812" stroke-width="14" stroke-linejoin="round"/><path d="M256 16 L190 130 L226 116 L226 244 C184 244 142 218 142 166 L142 32 L50 134 L84 120 L84 170 C84 262 150 318 226 322 L226 420 L200 452 L256 500 Z" fill="url(#gold)"/><path d="M256 16 L322 130 L286 116 L286 244 C328 244 370 218 370 166 L370 32 L462 134 L428 120 L428 170 C428 262 362 318 286 322 L286 420 L312 452 L256 500 Z" fill="url(#iris)"/></svg>

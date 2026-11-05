@@ -50,8 +50,9 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = python -c "import re,pathlib; print(re.search(r'^APP_VERSION\s*=\s*\"([^\"]+)\"', pathlib.Path('config.py').read_text(encoding='utf-8'), re.M).group(1))"
-          if (-not $version) { Write-Host "::error::APP_VERSION not found in config.py"; exit 1 }
+          # Also checks that config.py and installer.iss carry the same version
+          $version = python -c "import sys; sys.path.insert(0, 'scripts'); from create_update_package import app_version; print(app_version())"
+          if ($LASTEXITCODE -ne 0 -or -not $version) { Write-Host "::error::Could not read the version (config.py and installer.iss must match)"; exit 1 }
           Write-Host "Version: $version"
           "version=$version" >> $env:GITHUB_OUTPUT
 

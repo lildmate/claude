@@ -29,7 +29,7 @@ a CI pedig szól, ha elfelejtetted.)
 
 ## Kinézet testreszabása
 
-- **Ikon:** `assets/icon.png` és `assets/icon.ico` (tálca, telepítő, exe).
+- **Ikon:** `assets/icon.png` és `assets/icon.ico` (exe, telepítő), `assets/tray_ready.png` / `tray_starting.png` (tálca: kész / indul), `assets/golden_rose.png` (gomb a League kliens oldalsávjában, csak a formája számít, a színét a kliens adja). A forrás SVG-k és nagy változatok: `assets/proteus/`.
 - **Képek, gombok:** `assets/` mappa.
 - **A League kliensben megjelenő panelek** (beállítások, chroma kerék,
   party mode stb.): `Pengu Loader/plugins/ROSE-*/index.js`. A stílusok
