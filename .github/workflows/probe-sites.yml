@@ -14,12 +14,13 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Probe
         run: |
-          python3 -m pip install --quiet requests
+          python3 -m pip install --quiet playwright==1.48.0
+          python3 -m playwright install --with-deps chromium
           python3 scripts/probe_sites.py

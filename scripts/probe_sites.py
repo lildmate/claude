@@ -1,55 +1,60 @@
 #!/usr/bin/env python3
-"""Temporary: prints how the tier list and build sites carry their data (run on CI)."""
+"""Temporary: opens onetricks.gg pages in a real browser and prints their structure (run on CI)."""
 
 import re
 import sys
+import time
 
-import requests
+from playwright.sync_api import sync_playwright
 
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/140.0 Safari/537.36", "Accept-Language": "en-US,en;q=0.9"}
 PAGES = [
-    "https://u.gg/lol/tier-list",
-    "https://op.gg/lol/champions?position=mid",
-    "https://lolalytics.com/lol/tierlist/",
-    "https://www.onetricks.gg/champions/builds/ahri",
-    "https://www.onetricks.gg/en/champions/builds/ahri",
-    "https://www.onetricks.gg/champions/ranking/ahri",
+    "https://www.onetricks.gg/champions/ranking/Soraka",
+    "https://www.onetricks.gg/players/Ho5TLIWb6Y4Q5xPaObmmRudUp6G5u7DEtjxiiEAbryika3USKkD5LCrV1b4LNlSkx5H8ziRTD7_3_w",
 ]
 
 
-def probe(url):
-    print("=" * 100)
-    try:
-        r = requests.get(url, headers=UA, timeout=30)
-    except Exception as e:
-        print(url, "FAILED", repr(e))
-        return
-    t = r.text
-    print(url, "->", r.status_code, r.url, len(t), "chars", r.headers.get("content-type"))
-    scripts = re.findall(r'<script([^>]*)>', t)
-    print("script tags:", len(scripts))
-    for s in scripts[:40]:
-        if "src=" in s or "id=" in s or "type=" in s:
-            print("   ", s.strip()[:160])
-    for marker in ("__NEXT_DATA__", "__SSR_DATA__", "__INITIAL_STATE__", "window.__", "self.__next_f",
-                   "q:container", "qwik", "application/ld+json", "__NUXT__", "tierlist", "tier_list",
-                   "winRate", "win_rate", "winrate", "pickRate", "pick_rate", "Electrocute", "Ahri", "Aatrox",
-                   "stats2.u.gg", "api.op.gg", "ax.lolalytics", "lolalytics.com/mega", "/api/"):
-        n = t.count(marker)
-        if n:
-            print(f"  {marker!r}: {n}")
-    for marker in ("Aatrox", "Electrocute", "winRate", "win_rate", "Ahri"):
-        i = t.find(marker)
-        if i >= 0:
-            print(f"--- context of {marker!r} ---")
-            print(t[max(0, i - 600): i + 900].replace("\n", " "))
-            break
-    apis = sorted(set(re.findall(r'https?://[a-z0-9.-]*(?:api|stats|ax|a1|mega)[a-z0-9.-]*\.[a-z]+/[^"\'\s<>)]{0,80}', t)))
-    print("api-looking urls:", apis[:25])
+def main():
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/130.0.0.0 Safari/537.36",
+            locale="en-US", viewport={"width": 1400, "height": 1000})
+        page = context.new_page()
+        api_calls = []
+        page.on("response", lambda r: api_calls.append((r.status, r.url, r.headers.get("content-type", "")))
+                if ("json" in r.headers.get("content-type", "") or "/api" in r.url) else None)
+        for url in PAGES:
+            print("=" * 100)
+            api_calls.clear()
+            try:
+                resp = page.goto(url, wait_until="networkidle", timeout=60000)
+                print(url, "->", resp.status if resp else None)
+            except Exception as e:
+                print(url, "goto failed:", repr(e))
+            time.sleep(4)
+            html = page.content()
+            text = page.inner_text("body") if page.query_selector("body") else ""
+            print("html", len(html), "text", len(text))
+            print("---- visible text ----")
+            print(text[:5000])
+            print("---- json/api responses ----")
+            for c in api_calls[:40]:
+                print("  ", c)
+            for marker in ("__NEXT_DATA__", "self.__next_f", "__NUXT__", "q:container", "astro-island", "props="):
+                n = html.count(marker)
+                if n:
+                    print(f"  marker {marker!r}: {n}")
+            m = re.search(r"astro-island[^>]*props=\"([^\"]{0,3000})", html)
+            if m:
+                print("astro props sample:", m.group(1)[:3000])
+            time.sleep(6)
+        browser.close()
 
 
 if __name__ == "__main__":
-    for u in PAGES:
-        probe(u)
+    try:
+        main()
+    except Exception as e:
+        print("probe failed:", repr(e))
     sys.exit(0)
