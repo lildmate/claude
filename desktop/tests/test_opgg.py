@@ -31,7 +31,7 @@ ROWS = ('80:["$","tr","core_items_0",{"children":[{"metaType":"item","metaId":31
 
 class OpGGTests(unittest.TestCase):
     def test_flight_joins_the_pushes(self):
-        self.assertEqual(flight(page("a\\n", "b")), "a\nb")
+        self.assertEqual(flight(page("a\n", "b")), "a\nb")
 
     def test_tier_list(self):
         data = flight(page(TIER))
