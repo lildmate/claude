@@ -59,10 +59,10 @@ class ModStorageService:
     # display name is retained for the final directory, but including it in
     # the temporary directory name can push deeply nested WAD paths over the
     # legacy MAX_PATH limit before the import is renamed into place.
-    IMPORT_TEMP_PREFIX = ".rose-import-"
-    TARGET_METADATA = "rose_mod_targets.json"
-    LEGACY_TARGET_METADATA = "rose_wad_targets.json"
-    CATEGORY_METADATA = "rose_category_mods.json"
+    IMPORT_TEMP_PREFIX = ".proteus-import-"
+    TARGET_METADATA = "proteus_mod_targets.json"
+    LEGACY_TARGET_METADATA = "proteus_wad_targets.json"
+    CATEGORY_METADATA = "proteus_category_mods.json"
 
     CATEGORY_SKINS = "skins"
     CATEGORY_MAPS = "maps"

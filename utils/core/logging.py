@@ -307,7 +307,7 @@ def setup_logging(log_mode: str = 'customer', *, write_logs: bool = True):
             timestamp = datetime.now().strftime(LOG_TIMESTAMP_FORMAT)
             
             max_bytes = int(LOG_MAX_FILE_SIZE_MB_DEFAULT * 1024 * 1024)
-            log_file = logs_dir / f"rose_{timestamp}.log"
+            log_file = logs_dir / f"proteus_{timestamp}.log"
             def _factory_plain(p: Path):
                 return logging.FileHandler(p, encoding='utf-8')
             file_handler = SizeRotatingCompositeHandler(log_file, _factory_plain, max_bytes)

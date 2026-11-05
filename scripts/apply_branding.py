@@ -23,15 +23,15 @@ PLUGINS = ROOT / "Pengu Loader" / "plugins"
 
 # file -> {JS constant name: value}
 CONSTANTS = {
-    PLUGINS / "ROSE-SettingsPanel" / "index.js": {
+    PLUGINS / "PROTEUS-SettingsPanel" / "index.js": {
         "DISCORD_INVITE_URL": branding.DISCORD_URL,
         "KOFI_URL": branding.DONATE_URL,
         "KOFI_LABEL": branding.DONATE_LABEL,
         "GITHUB_URL": branding.GITHUB_URL,
     },
-    PLUGINS / "ROSE-UI" / "index.js": {
+    PLUGINS / "PROTEUS-UI" / "index.js": {
         "DISCORD_INVITE_URL": branding.DISCORD_URL,
-        "ROSE_GITHUB_REPO_API_URL": f"https://api.github.com/repos/{branding.UPDATE_REPO}",
+        "PROTEUS_GITHUB_REPO_API_URL": f"https://api.github.com/repos/{branding.UPDATE_REPO}",
     },
 }
 

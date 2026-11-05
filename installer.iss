@@ -2,14 +2,14 @@
 ; This creates a proper Windows installer that registers the app
 
 #define MyAppName "Proteus"
-#define MyAppVersion "1.5.3"
-#define MyAppVersionInfo "1.5.3.0"
+#define MyAppVersion "1.5.4"
+#define MyAppVersionInfo "1.5.4.0"
 #define MyAppPublisher "lildmate"
 #define MyAppURL "https://github.com/lildmate/claude"
 #define MyAppExeName "Proteus.exe"
 #define MyAppDescription "Effortless skin changer for League of Legends"
 ; Must match config.SINGLE_INSTANCE_MUTEX_NAME (used by the app to enforce single-instance)
-#define MyAppMutex "Local\RoseSingleInstance"
+#define MyAppMutex "Local\ProteusSingleInstance"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -71,6 +71,12 @@ Filename: "{app}\_internal\Pengu Loader\Pengu Loader.exe"; Parameters: "--uninst
 ; Always remove the Proteus auto-start scheduled task (created via schtasks /TN "Proteus")
 Filename: "{sys}\schtasks.exe"; Parameters: "/Delete /TN Proteus /F"; Flags: runhidden
 
+[InstallDelete]
+; Plugin folders from before the rename to Proteus (ROSE-*): left in place they
+; would be loaded next to the PROTEUS-* ones and show every panel twice
+Type: filesandordirs; Name: "{app}\_internal\Pengu Loader\plugins\ROSE-*"
+Type: filesandordirs; Name: "{app}\Pengu Loader\plugins\ROSE-*"
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\_internal"
 Type: filesandordirs; Name: "{app}\injection\overlay"
@@ -105,13 +111,13 @@ end;
 
 function InitializeUninstall(): Boolean;
 var
-  RoseRunning: Boolean;
+  ProteusRunning: Boolean;
   LeagueRunning: Boolean;
 begin
-  RoseRunning := CheckForMutexes('{#MyAppMutex}');
+  ProteusRunning := CheckForMutexes('{#MyAppMutex}');
   LeagueRunning := _IsLeagueRunning();
 
-  if RoseRunning and LeagueRunning then
+  if ProteusRunning and LeagueRunning then
   begin
     MsgBox(
       '{#MyAppName} and League of Legends are both currently running.'#13#10 +
@@ -123,7 +129,7 @@ begin
     exit;
   end;
 
-  if RoseRunning then
+  if ProteusRunning then
   begin
     MsgBox(
       '{#MyAppName} is currently running.'#13#10 +
@@ -174,7 +180,7 @@ begin
       { Remove legacy/broken startup entries that invoke rundll32 on Pengu Loader core.dll.
         This is what produces the RunDLL "module not found" dialog after uninstall. }
       if (_ContainsTextLower(ValLower, 'rundll32') and _ContainsTextLower(ValLower, 'pengu loader\core.dll')) or
-         _ContainsTextLower(ValLower, '\rose\_internal\pengu loader\core.dll') then
+         _ContainsTextLower(ValLower, '\proteus\_internal\pengu loader\core.dll') then
       begin
         RegDeleteValue(RootKey, SubKey, Names[I]);
       end;
@@ -258,7 +264,7 @@ begin
   end;
 end;
 
-procedure _DeleteLocalAppDataRose();
+procedure _DeleteLocalAppDataProteus();
 begin
   { Ensure user data is removed before running external cleanup }
   DelTree(ExpandConstant('{localappdata}\Rose'), True, True, True);
@@ -274,7 +280,7 @@ begin
 
   if CurUninstallStep = usPostUninstall then
   begin
-    _DeleteLocalAppDataRose();
+    _DeleteLocalAppDataProteus();
     { Inno removes installed files; a shared/custom install root may also
       contain unrelated files. Remove the root only when it is empty. }
     RemoveDir(ExpandConstant('{app}'));

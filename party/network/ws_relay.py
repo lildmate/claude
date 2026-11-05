@@ -26,7 +26,7 @@ try:
 except ImportError:
     _CONFIGURED_URL = ""
 
-RELAY_URL = os.environ.get("ROSE_RELAY_URL", _CONFIGURED_URL)
+RELAY_URL = os.environ.get("PROTEUS_RELAY_URL", _CONFIGURED_URL)
 PING_INTERVAL = 25.0
 CONNECT_TIMEOUT = 15.0
 # Wait before each reconnect attempt, in seconds

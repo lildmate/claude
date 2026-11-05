@@ -19,15 +19,15 @@ nem tudnak Pythont importálni, ezért módosítás után futtasd:
 # Frissítések
 # -----------------------------------------------------------------------------
 # Ebből a GitHub repóból keresi az app az új verziókat (Releases).
-# Új verzió kiadása: lásd SAJAT_VERZIO.md.
+# Új verzió kiadása: lásd KARBANTARTAS.md.
 UPDATE_REPO = "lildmate/claude"
 
 # -----------------------------------------------------------------------------
 # Skin könyvtár
 # -----------------------------------------------------------------------------
-# Innen szinkronizálja a skin fájlokat. Alapból az eredeti Rose skin repója,
-# mert ennek a karbantartása (minden patch után) óriási munka. Ha saját
-# forkot csinálsz belőle (ugyanazzal a "manifest" ággal), írd át ide.
+# Innen szinkronizálja a skin fájlokat. Ezt a repót nem mi tartjuk karban:
+# minden League patch után ott frissülnek a skinek. Ha egyszer saját másolat
+# kell (ugyanazzal a "manifest" ággal), itt kell átírni.
 SKINS_REPO = "Alban1911/LeagueSkins"
 
 # -----------------------------------------------------------------------------
@@ -38,10 +38,3 @@ GITHUB_URL = f"https://github.com/{UPDATE_REPO}"
 DISCORD_URL = ""
 DONATE_URL = ""
 DONATE_LABEL = "Ko-Fi"
-
-# -----------------------------------------------------------------------------
-# Statisztika
-# -----------------------------------------------------------------------------
-# Az eredeti Rose a saját szerverére küldött használati pingeket.
-# Saját verzióban ennek nincs értelme, ezért alapból ki van kapcsolva.
-ANALYTICS_ENABLED = False

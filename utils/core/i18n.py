@@ -3,7 +3,7 @@
 """
 Interface language
 Picks the language of Proteus's menus: the one chosen in Settings, else the
-League client's, else English. The texts live in the ROSE-I18n plugin
+League client's, else English. The texts live in the PROTEUS-I18n plugin
 (locales/<language>.json, keyed by their English text); Proteus serves the
 chosen language's texts to the plugins at /i18n.
 """
@@ -99,7 +99,7 @@ def resolve_language(setting: Optional[str], client_locale: Optional[str]) -> st
 
 def locales_dir() -> Path:
     from utils.integration.pengu_loader import PENGU_DIR
-    return Path(PENGU_DIR) / "plugins" / "ROSE-I18n" / "locales"
+    return Path(PENGU_DIR) / "plugins" / "PROTEUS-I18n" / "locales"
 
 
 def load_strings(language: str, directory: Optional[Path] = None) -> Dict[str, str]:

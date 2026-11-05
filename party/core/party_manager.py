@@ -221,7 +221,7 @@ class PartyManager:
             token = PartyToken.decode(token_str)
         except ValueError as e:
             log.info(f"[PARTY] Invalid token: {e}")
-            return False, "That's not a valid party token. Copy the whole token (it starts with ROSE:)."
+            return False, "That's not a valid party token. Copy the whole token (it starts with PROTEUS:)."
 
         if token.summoner_id == self.party_state.my_summoner_id:
             return False, "That's your own token - send it to your friends instead"

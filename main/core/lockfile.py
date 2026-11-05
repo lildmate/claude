@@ -94,7 +94,7 @@ def create_lock_file() -> bool:
         state_dir = get_state_dir()
         state_dir.mkdir(parents=True, exist_ok=True)
         
-        lock_file_path = state_dir / "rose.lock"
+        lock_file_path = state_dir / "proteus.lock"
         app_state = get_app_state()
         app_state.lock_file_path = lock_file_path
         

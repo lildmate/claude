@@ -87,7 +87,7 @@ class InjectionSettingsWindow(Win32Window):
 
     def __init__(self, initial_threshold: float) -> None:
         super().__init__(
-            class_name="RoseSettingsDialog",
+            class_name="ProteusSettingsDialog",
             window_title="Settings",
             width=360,
             height=380,

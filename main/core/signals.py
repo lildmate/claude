@@ -127,7 +127,7 @@ def _start_shutdown_watcher() -> None:
 
     # -- Thread body -------------------------------------------------------------
     def _run() -> None:
-        class_name = "RoseShutdownWatcher"
+        class_name = "ProteusShutdownWatcher"
         h_instance = kernel32.GetModuleHandleW(None)
 
         wc = WNDCLASSEXW()

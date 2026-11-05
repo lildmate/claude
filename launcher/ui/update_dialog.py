@@ -46,7 +46,7 @@ class UpdateDialog(Win32Window):
 
     def __init__(self) -> None:
         super().__init__(
-            class_name="RoseUpdateDialog",
+            class_name="ProteusUpdateDialog",
             window_title=f"Proteus {APP_VERSION}",
             width=420,
             height=120,

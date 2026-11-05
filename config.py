@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 # APPLICATION METADATA
 # =============================================================================
 
-APP_VERSION = "1.5.3"                           # Application version
+APP_VERSION = "1.5.4"                           # Application version
 APP_USER_AGENT = f"Proteus/{APP_VERSION}"  # User-Agent header for HTTP requests
 GAME_EXECUTABLE_NAMES = ("League of Legends.exe", "League of Legends (TM) Client.exe")
 
@@ -369,16 +369,16 @@ WINDOWS_DPI_AWARENESS_SYSTEM = 1         # PROCESS_SYSTEM_DPI_AWARE
 # =============================================================================
 
 # Lock file name
-LOCK_FILE_NAME = "rose.lock"
+LOCK_FILE_NAME = "proteus.lock"
 
 # NEW: Windows named mutex for single-instance (per-user/session)
 _IS_DEV_BUILD = bool(getattr(sys, "frozen", False)) and (
-    "rosedev" in Path(sys.executable).stem.lower() or "rose-dev" in Path(sys.executable).stem.lower()
+    "proteusdev" in Path(sys.executable).stem.lower() or "proteus-dev" in Path(sys.executable).stem.lower()
 )
-SINGLE_INSTANCE_MUTEX_NAME = r"Local\RoseDevSingleInstance" if _IS_DEV_BUILD else r"Local\RoseSingleInstance"
+SINGLE_INSTANCE_MUTEX_NAME = r"Local\ProteusDevSingleInstance" if _IS_DEV_BUILD else r"Local\ProteusSingleInstance"
 
 # Log file patterns (handles .log files)
-LOG_FILE_PATTERN = "rose_*.log*"
+LOG_FILE_PATTERN = "proteus_*.log*"
 UPDATER_LOG_FILE_PATTERN = "log_updater_*.log*"
 LOG_TIMESTAMP_FORMAT = "%d-%m-%Y_%H-%M-%S"  # European format, Windows-compatible
 
@@ -400,14 +400,6 @@ INTERESTING_PHASES = {
 }
 
 
-# =============================================================================
-# ANALYTICS CONSTANTS
-# =============================================================================
-
-ANALYTICS_SERVER_URL = 'https://analytics.rosekeys.site/'  # Analytics server endpoint
-ANALYTICS_PING_INTERVAL_S = 900  # Seconds between presence heartbeats (15 minutes)
-from branding import ANALYTICS_ENABLED  # Enable/disable analytics tracking (set in branding.py)
-ANALYTICS_TIMEOUT_S = 5  # Request timeout in seconds
 
 # =============================================================================
 # DEFAULT ARGUMENTS

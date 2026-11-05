@@ -38,7 +38,7 @@ class SuspendedGameTests(unittest.TestCase):
         except psutil.Error:
             pass
 
-    def test_startup_resumes_a_game_a_dead_rose_left_suspended(self):
+    def test_startup_resumes_a_game_a_dead_proteus_left_suspended(self):
         self.assertEqual(resume_orphaned_game(), 1)
         self.assertNotEqual(self.game.status(), psutil.STATUS_STOPPED)
 

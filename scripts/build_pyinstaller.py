@@ -94,7 +94,7 @@ def check_relay_config():
     config = ROOT / "party" / "network" / "relay_config.py"
     if not config.exists() or "RELAY_URL" not in config.read_text(encoding="utf-8"):
         print(f"[WARNING] Missing {config.relative_to(ROOT)} - building without party mode (no relay)")
-        print('          To enable it: RELAY_URL = "wss://<relay-worker-host>" (see SAJAT_VERZIO.md)')
+        print('          To enable it: RELAY_URL = "wss://<relay-worker-host>" (see KARBANTARTAS.md)')
 
     return True
 

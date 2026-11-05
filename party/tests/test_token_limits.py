@@ -12,7 +12,7 @@ from party.protocol.token_codec import PartyToken, create_token
 MAX_TOKEN_LENGTH = 160
 
 
-def encode_payload(payload: bytes, level: int = 9, prefix: str = "ROSE:", trailing: bytes = b"") -> str:
+def encode_payload(payload: bytes, level: int = 9, prefix: str = "PROTEUS:", trailing: bytes = b"") -> str:
     compressed = zlib.compress(payload, level) + trailing
     return prefix + base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
 
@@ -32,7 +32,7 @@ class ValidTokenTests(unittest.TestCase):
         encoded = token.encode()
         self.assertLessEqual(len(encoded), MAX_TOKEN_LENGTH)
 
-        bare = encoded[len("ROSE:"):]
+        bare = encoded[len("PROTEUS:"):]
         padded = bare + "=" * (-len(bare) % 4)
         for text in (encoded, bare, padded):
             decoded = PartyToken.decode(text)
@@ -91,11 +91,11 @@ class RejectedTokenTests(unittest.TestCase):
     def test_truncated_and_trailing_streams_are_refused(self):
         valid = zlib.compress(v2_payload(1, b"k" * 32, int(time.time())), 9)
         for compressed in (valid[:-4], valid + b"\x00junk"):
-            text = "ROSE:" + base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+            text = "PROTEUS:" + base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
             self.assertRejected(text)
 
     def test_text_that_is_not_base64_zlib_is_refused(self):
-        for text in ("ROSE:", "ROSE:!!!!", "not a token", "ROSE:é"):
+        for text in ("PROTEUS:", "PROTEUS:!!!!", "not a token", "PROTEUS:é"):
             self.assertRejected(text)
 
 

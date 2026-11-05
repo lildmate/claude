@@ -40,7 +40,7 @@ class ProcessManager:
         # Set when the user stops injection so the kill isn't reported as a failure
         self.stopped_by_user = False
         # Set when Proteus's own cleanup stops the session (lobby change, shutdown)
-        self.stopped_by_rose = False
+        self.stopped_by_proteus = False
         # Graceful end of the current LTF session, registered by the overlay manager
         self._session_stopper = None
         # (pid, create time) of the LTK Manager Proteus started; a running LTK
@@ -63,10 +63,10 @@ class ProcessManager:
         self._stop_session()
         self.kill_all_runoverlay_processes()
 
-    def _mark_stopped_by_rose(self):
+    def _mark_stopped_by_proteus(self):
         """Tag the current session before Proteus stops it: its failure then
         is not reported as an injection failure"""
-        self.stopped_by_rose = True
+        self.stopped_by_proteus = True
         self._stop_session()
 
     def _stop_session(self):
@@ -86,7 +86,7 @@ class ProcessManager:
 
     def stop_overlay_process(self):
         """Stop the current overlay process"""
-        self._mark_stopped_by_rose()
+        self._mark_stopped_by_proteus()
         proc = self.current_overlay_process
         if proc is not None and proc.poll() is None:
             try:
@@ -106,17 +106,17 @@ class ProcessManager:
 
     def kill_all_runoverlay_processes(self):
         """Close the LTK Manager Proteus started (for ChampSelect cleanup)"""
-        self._mark_stopped_by_rose()
-        self._close_rose_ltk_manager()
+        self._mark_stopped_by_proteus()
+        self._close_proteus_ltk_manager()
         self.stop_overlay_process()
 
     def kill_all_modtools_processes(self):
         """Close the LTK Manager Proteus started (for application shutdown)"""
-        self._mark_stopped_by_rose()
-        self._close_rose_ltk_manager()
+        self._mark_stopped_by_proteus()
+        self._close_proteus_ltk_manager()
         self.stop_overlay_process()
 
-    def _close_rose_ltk_manager(self):
+    def _close_proteus_ltk_manager(self):
         """Terminate the LTK Manager Proteus started, if it is still running.
 
         The session stopper already asked it to exit through the bridge; this

@@ -89,7 +89,7 @@ jobs:
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: |
           if (-not $env:RELAY_URL) {
-            Write-Host "::warning::No RELAY_URL secret: building without party mode (see SAJAT_VERZIO.md)"
+            Write-Host "::warning::No RELAY_URL secret: building without party mode (see KARBANTARTAS.md)"
             exit 0
           }
           $url = $env:RELAY_URL.Trim().TrimEnd('/')

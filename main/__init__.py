@@ -555,7 +555,7 @@ def _update_registry_version() -> None:
     startup keeps "Apps & features" in sync.
 
     Inno names its entry after the AppId (``AppId={{...}}`` keeps the closing
-    ``}}``). Proteus has its own AppId, separate from the original Rose's.
+    ``}}``). Proteus has its own AppId, separate from the one of the Rose it was forked from.
     """
     if sys.platform != "win32" or not getattr(sys, "frozen", False):
         return
@@ -594,7 +594,7 @@ def _schedule_restart() -> bool:
             workdir = Path(__file__).parent.parent
             launch_cmd = f'start "" /D "{workdir}" "{exe_path}" "main.py"'
 
-        batch_path = Path(tempfile.gettempdir()) / f"rose_restart_{pid}.bat"
+        batch_path = Path(tempfile.gettempdir()) / f"proteus_restart_{pid}.bat"
 
         batch_content = (
             "@echo off\n"

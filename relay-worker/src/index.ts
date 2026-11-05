@@ -4,9 +4,9 @@ interface Env {
   ROOM: DurableObjectNamespace;
 }
 
-// Rose before this version could keep a room awake all day (reconnecting every
+// Proteus before this version could keep a room awake all day (reconnecting every
 // 100s when its pings never got through): it is refused here, before waking the
-// room, and Rose 1.4.2+ stops retrying on this status. Older Rose sends no version
+// room, and Proteus 1.4.2+ stops retrying on this status. Older Proteus sends no version
 const MIN_VERSION = [1, 4, 4];
 
 function supported(version: string | null): boolean {
@@ -25,7 +25,7 @@ export default {
 
     // Health check
     if (url.pathname === '/' && request.method === 'GET') {
-      return new Response(JSON.stringify({ status: 'ok', service: 'rose-party-relay' }), {
+      return new Response(JSON.stringify({ status: 'ok', service: 'proteus-party-relay' }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }

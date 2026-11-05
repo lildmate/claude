@@ -40,17 +40,38 @@ _SESSION_FILE = get_state_dir() / 'pengu_session.json'
 _CONFIG_FILE = get_config_file_path()
 # The loader runs elevated: when Proteus was elevated with another account's
 # credentials, its own LocalApplicationData isn't the desktop user's config.ini
-os.environ['ROSE_CONFIG_PATH'] = str(_CONFIG_FILE)
+os.environ['PROTEUS_CONFIG_PATH'] = str(_CONFIG_FILE)
 
 _ACTIVE_FLAG = get_state_dir() / "pengu_active.flag"
 _LEGACY_PENGU_LOGS = (
-    "rose.log",
-    "rose.log.old",
+    "proteus.log",
+    "proteus.log.old",
     "crash.log",
 )
 _PLUGIN_ENTRYPOINT = "index.js"
 _PLUGIN_ENTRYPOINT_DISABLED = "index.js_"
 _PLUGIN_ENTRYPOINT_BUNDLED_BACKUP = "index.js.bundled"
+
+
+# Plugin folders from before the rename to Proteus (and the original Rose's,
+# which shares this data folder): loaded next to the PROTEUS-* ones they would
+# show every panel twice
+LEGACY_PLUGIN_PATTERN = "ROSE-*"
+
+
+def _remove_legacy_plugins(pengu_dir: Path) -> None:
+    """Delete the ROSE-* plugin folders from the runtime Pengu Loader."""
+    plugins_dir = pengu_dir / "plugins"
+    if not plugins_dir.is_dir():
+        return
+    for legacy in plugins_dir.glob(LEGACY_PLUGIN_PATTERN):
+        if not legacy.is_dir():
+            continue
+        try:
+            shutil.rmtree(legacy)
+            log.info("Removed legacy plugin folder: %s", legacy.name)
+        except OSError as exc:
+            log.warning("Could not remove legacy plugin folder %s: %s", legacy.name, exc)
 
 
 def _remove_legacy_pengu_logs(pengu_dir: Path) -> None:
@@ -282,7 +303,7 @@ def _resolve_pengu_dir() -> Path:
                 bundled_dir,
                 runtime_dir,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("datastore"),
+                ignore=shutil.ignore_patterns("datastore", LEGACY_PLUGIN_PATTERN),
             )
         except shutil.Error as exc:
             # copytree copies what it can and lists the rest. A running client
@@ -308,6 +329,8 @@ def _resolve_pengu_dir() -> Path:
 
         # Remove logs from versions that used separate Proteus/crash diagnostics.
         _remove_legacy_pengu_logs(runtime_dir)
+
+        _remove_legacy_plugins(runtime_dir)
 
     except Exception as exc:
         log.error("Failed to copy Pengu Loader to runtime directory: %s", exc)
@@ -680,12 +703,12 @@ def _read_session() -> Optional[dict[str, object]]:
         return None
 
 
-def _write_session(was_active: bool, rose_activated: bool) -> bool:
+def _write_session(was_active: bool, proteus_activated: bool) -> bool:
     record = {
         'version': 1,
-        'rose_pid': os.getpid(),
-        'pengu_was_active_before_rose': was_active,
-        'rose_activated_pengu': rose_activated,
+        'proteus_pid': os.getpid(),
+        'pengu_was_active_before_proteus': was_active,
+        'proteus_activated_pengu': proteus_activated,
         'activated_at': datetime.now().astimezone().isoformat(),
     }
     temporary = _SESSION_FILE.with_suffix(f'{_SESSION_FILE.suffix}.tmp')
@@ -707,8 +730,8 @@ def _clear_session() -> None:
 
 
 def _session_requires_deactivation(session: dict[str, object]) -> bool:
-    return bool(session.get('rose_activated_pengu')) and not bool(
-        session.get('pengu_was_active_before_rose')
+    return bool(session.get('proteus_activated_pengu')) and not bool(
+        session.get('pengu_was_active_before_proteus')
     )
 
 
@@ -822,15 +845,15 @@ def _remove_hook(core: Path) -> bool:
     return True
 
 
-def _external_pengu_with_rose_plugins() -> Optional[Path]:
+def _external_pengu_with_proteus_plugins() -> Optional[Path]:
     """Keep an already configured standalone Pengu installation in place."""
     core = _hook_of_another_loader()
     if core is None:
         return None
     external = core.parent
     if ((external / 'Pengu Loader.exe').is_file()
-            and (external / 'plugins' / 'ROSE-SkinMonitor' / 'index.js').is_file()
-            and (external / 'plugins' / 'ROSE-UI' / 'index.js').is_file()):
+            and (external / 'plugins' / 'PROTEUS-SkinMonitor' / 'index.js').is_file()
+            and (external / 'plugins' / 'PROTEUS-UI' / 'index.js').is_file()):
         return external
     return None
 
@@ -839,7 +862,7 @@ def ensure_active_for_client() -> None:
     """The client just started: enable Proteus's loader if none is active any more
     (a standalone Pengu disabled while Proteus runs). Runs on that event, no polling."""
     with _operation_lock:
-        if _external_pengu_with_rose_plugins() is not None:
+        if _external_pengu_with_proteus_plugins() is not None:
             return
         core = _registered_pengu_core()
         if core is not None and core.parent.resolve() == PENGU_DIR.resolve():
@@ -879,20 +902,20 @@ def retry_deferred_restart() -> None:
 def activate_on_start(league_path: Optional[str] = None) -> bool:
     global _restart_pending
     with _operation_lock:
-        external = _external_pengu_with_rose_plugins()
+        external = _external_pengu_with_proteus_plugins()
         if external is not None:
             log.info('Using existing external Pengu Loader with Proteus plugins: %s', external)
             # This activation belongs to the user, so Proteus must not remove it
             # on exit or replace its registry entry with the bundled loader.
-            return _write_session(was_active=True, rose_activated=False)
+            return _write_session(was_active=True, proteus_activated=False)
         if not _is_available():
             log.error('Pengu Loader executable is unavailable: %s', PENGU_EXE)
             return False
 
-        stale_rose_owned = False
+        stale_proteus_owned = False
         if _SESSION_FILE.exists() or _ACTIVE_FLAG.exists():
             session = _read_session()
-            stale_rose_owned = (
+            stale_proteus_owned = (
                 _session_requires_deactivation(session)
                 if session is not None
                 else _ACTIVE_FLAG.exists()
@@ -919,7 +942,7 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
             if not activate():
                 return False
             activated_now = True
-        elif stale_rose_owned:
+        elif stale_proteus_owned:
             log.info('Adopted the active Pengu session from the previous Proteus process (restart League: %s).',
                      restart_needed)
         else:
@@ -928,7 +951,7 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
             log.info("Proteus's Pengu Loader was already active; adopting it (restart League: %s).", restart_needed)
         _ensure_loader_config()
 
-        if not _write_session(was_active=False, rose_activated=True):
+        if not _write_session(was_active=False, proteus_activated=True):
             if activated_now:
                 log.error('Could not persist session state; reverting activation.')
                 deactivate()
@@ -943,7 +966,7 @@ def activate_on_start(league_path: Optional[str] = None) -> bool:
         return True
 
 
-def restore_after_rose() -> bool:
+def restore_after_proteus() -> bool:
     with _operation_lock:
         session = _read_session()
         legacy = _ACTIVE_FLAG.exists()
@@ -979,4 +1002,4 @@ def restore_after_rose() -> bool:
 
 
 def deactivate_on_exit() -> bool:
-    return restore_after_rose()
+    return restore_after_proteus()

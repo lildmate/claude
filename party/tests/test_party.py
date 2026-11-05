@@ -476,7 +476,7 @@ class RelayReconnectTests(unittest.TestCase):
         self.assertEqual(self.opens, 1)
         self.assertTrue(self.relay.stopped)
 
-    def test_a_relay_asking_for_a_newer_rose_stops_at_once(self):
+    def test_a_relay_asking_for_a_newer_proteus_stops_at_once(self):
         async def open_(timeout):
             self.opens += 1
             self.relay._update_required = True

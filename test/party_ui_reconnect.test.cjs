@@ -1,4 +1,4 @@
-// ROSE-PartyMode when its connection to Proteus drops mid-request.
+// PROTEUS-PartyMode when its connection to Proteus drops mid-request.
 // Runs the real plugin in a VM with a small fake DOM and WebSocket:
 //   node --test test/party_ui_reconnect.test.cjs
 // PARTY_MODE_PLUGIN=<path> runs it against another copy of the plugin.
@@ -11,7 +11,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const PLUGIN = process.env.PARTY_MODE_PLUGIN ||
-  path.join(__dirname, "..", "Pengu Loader", "plugins", "ROSE-PartyMode", "index.js");
+  path.join(__dirname, "..", "Pengu Loader", "plugins", "PROTEUS-PartyMode", "index.js");
 
 // ─── Fake DOM: the parts of it the plugin uses ───────────────────────────
 
@@ -276,8 +276,8 @@ async function loadPlugin() {
     el: (id) => document.getElementById(id),
     text: (id) => document.getElementById(id).textContent.replace(/\s+/g, " ").trim(),
     dialog: () => document.querySelector(".party-dialog"),
-    panelVisible: () => document.getElementById("rose-party-panel").classList.contains("visible"),
-    openPanel() { document.getElementById("rose-party-lobby-button").click(); },
+    panelVisible: () => document.getElementById("proteus-party-panel").classList.contains("visible"),
+    openPanel() { document.getElementById("proteus-party-lobby-button").click(); },
     // Run the reconnect timer the plugin set when its connection dropped
     reconnect() {
       const index = timeouts.findIndex((t) => t.ms === 1000);
@@ -285,7 +285,7 @@ async function loadPlugin() {
       timeouts.splice(index, 1)[0].fn();
     },
     state(enabled, extra = {}) {
-      this.socket.receive({ type: "party-state", enabled, connection: enabled ? "online" : "offline", my_token: enabled ? "ROSE:mine" : null, peers: [], ...extra });
+      this.socket.receive({ type: "party-state", enabled, connection: enabled ? "online" : "offline", my_token: enabled ? "PROTEUS:mine" : null, peers: [], ...extra });
     },
   };
   ui.socket.open();
@@ -307,9 +307,9 @@ test("a dropped connection while adding a friend gives the panel back, token inc
   ui.openPanel();
   assert.ok(ui.panelVisible());
 
-  ui.el("add-peer-input").value = "ROSE:friend";
+  ui.el("add-peer-input").value = "PROTEUS:friend";
   ui.el("add-peer-btn").click();
-  assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "ROSE:friend" });
+  assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "PROTEUS:friend" });
   assert.equal(ui.dialog().hasAttribute("close-button"), false, "locked while Proteus connects");
 
   const first = ui.socket;
@@ -317,7 +317,7 @@ test("a dropped connection while adding a friend gives the panel back, token inc
 
   assertPanelUnlocked(ui);
   assert.ok(ui.panelVisible(), "the panel stays open");
-  assert.equal(ui.el("add-peer-input").value, "ROSE:friend", "the token is back, ready to retry");
+  assert.equal(ui.el("add-peer-input").value, "PROTEUS:friend", "the token is back, ready to retry");
   assert.match(ui.text("add-peer-message"), /Lost the connection to Proteus/);
 
   // Back online: nothing is sent again on its own; the user retries
@@ -328,7 +328,7 @@ test("a dropped connection while adding a friend gives the panel back, token inc
   assert.equal(ui.text("add-peer-message"), "", "the connection error is gone");
   ui.state(true);
   ui.el("add-peer-btn").click();
-  assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "ROSE:friend" });
+  assert.deepEqual(ui.socket.sent.at(-1), { type: "party-add-peer", token: "PROTEUS:friend" });
 
   // And the panel closes again once Proteus answers
   ui.socket.receive({ type: "party-peer-added", success: true, message: "Connected to B" });
@@ -368,11 +368,11 @@ test("a request made while Proteus is unreachable is refused at once, never sent
   ui.openPanel();
   ui.socket.drop();
 
-  ui.el("add-peer-input").value = "ROSE:friend";
+  ui.el("add-peer-input").value = "PROTEUS:friend";
   ui.el("add-peer-btn").click();
   assert.match(ui.text("add-peer-message"), /Proteus is not reachable/);
   assertPanelUnlocked(ui);
-  assert.equal(ui.el("add-peer-input").value, "ROSE:friend");
+  assert.equal(ui.el("add-peer-input").value, "PROTEUS:friend");
 
   ui.el("party-toggle-btn").click();
   assert.match(ui.text("party-toggle-message"), /Proteus is not reachable/);
@@ -394,7 +394,7 @@ test("Proteus's party state settles a request whose answer was lost", async () =
   assert.equal(ui.el("party-toggle-btn").disabled, false);
   assert.equal(ui.text("party-toggle-btn"), "Disable Party Mode");
 
-  ui.el("add-peer-input").value = "ROSE:friend";
+  ui.el("add-peer-input").value = "PROTEUS:friend";
   ui.el("add-peer-btn").click();
   ui.state(true, { connection: "reconnecting" }); // still adding: stays locked
   assert.equal(ui.dialog().hasAttribute("close-button"), false);

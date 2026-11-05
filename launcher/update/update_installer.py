@@ -42,10 +42,10 @@ robocopy "%SOURCE%" "%DEST%" /MIR /R:5 /W:2 /NFL /NDL /NJH /NJS /XD __pycache__ 
 set "RC=%ERRORLEVEL%"
 echo [%date% %time%] robocopy exit code %RC% >> "%LOG%"
 if %RC% GEQ 8 goto :robofail
-echo [%date% %time%] Updating ROSE plugins (preserving user-installed) >> "%LOG%"
+echo [%date% %time%] Updating PROTEUS plugins (preserving user-installed) >> "%LOG%"
 if exist "%SOURCE%\Pengu Loader\plugins" (
     if not exist "%DEST%\Pengu Loader\plugins" mkdir "%DEST%\Pengu Loader\plugins"
-    for /d %%D in ("%SOURCE%\Pengu Loader\plugins\ROSE-*") do (
+    for /d %%D in ("%SOURCE%\Pengu Loader\plugins\PROTEUS-*") do (
         echo [%date% %time%]   Sync plugin %%~nxD >> "%LOG%"
         robocopy "%%D" "%DEST%\Pengu Loader\plugins\%%~nxD" /MIR /R:5 /W:2 /NFL /NDL /NJH /NJS /XD __pycache__ >> "%LOG%" 2>&1
         if errorlevel 8 goto :robofail

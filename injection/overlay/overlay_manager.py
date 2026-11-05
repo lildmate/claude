@@ -449,7 +449,7 @@ class OverlayManager:
             self.process_manager.ltk_manager_process = (pid, created)
         self._update_state(lambda state: state.__setitem__("manager", {"pid": pid, "created": created}))
 
-    def _is_rose_manager(self, pid: Optional[int]) -> bool:
+    def _is_proteus_manager(self, pid: Optional[int]) -> bool:
         """Whether the LTK Manager with *pid* is one Proteus started (this run or before)."""
         manager = self._read_state()["manager"]
         if not pid or not manager or manager.get("pid") != pid:
@@ -481,13 +481,13 @@ class OverlayManager:
         except (psutil.Error, OSError) as e:
             log.debug(f"[INJECT] Could not close LTK Manager (PID {pid}): {e}")
 
-    def _close_stale_rose_manager(self) -> None:
+    def _close_stale_proteus_manager(self) -> None:
         """Close an LTK Manager Proteus started whose bridge no longer answers."""
         manager = self._read_state()["manager"]
         if not manager:
             return
         pid = manager.get("pid")
-        if self._is_rose_manager(pid) and self._process_created(pid) is not None:
+        if self._is_proteus_manager(pid) and self._process_created(pid) is not None:
             log.info(f"[INJECT] The LTK Manager Proteus started (PID {pid}) lost its bridge - closing it")
             self._terminate_manager(pid)
         self._update_state(lambda state: state.__setitem__("manager", None))
@@ -597,7 +597,7 @@ class OverlayManager:
         if found is not None:
             port, hello = found
             pid = hello.get("pid")
-            launched = self._is_rose_manager(pid)
+            launched = self._is_proteus_manager(pid)
             if launched:
                 self._register_manager(pid)
             log.info(
@@ -608,7 +608,7 @@ class OverlayManager:
 
         # The bridge only loads into an LTK Manager the launcher starts, and
         # an LTK Manager Proteus did not start is the user's: it stays open
-        self._close_stale_rose_manager()
+        self._close_stale_proteus_manager()
         if self._ltk_manager_running():
             log.warning("[INJECT] LTK Manager is already open without Proteus's bridge - leaving it alone")
             self._report_ltf_failure(ALREADY_OPEN_REASON, report)
@@ -709,7 +709,7 @@ class OverlayManager:
                 if self._check_bridge(session):
                     return session
                 self._end_session(session)
-            return self._start_ltf_session(report=True, cancelled=self._stopped_by_rose)
+            return self._start_ltf_session(report=True, cancelled=self._stopped_by_proteus)
 
     def discard_early_patcher(self) -> None:
         """Stop an LTF session whose injection never built its overlay.
@@ -785,15 +785,15 @@ class OverlayManager:
             return False
         return bridge.alive()
 
-    def _stopped_by_rose(self) -> bool:
+    def _stopped_by_proteus(self) -> bool:
         """Whether Proteus (or the user) asked to stop the current session."""
         if not self.process_manager:
             return False
-        return bool(self.process_manager.stopped_by_user or self.process_manager.stopped_by_rose)
+        return bool(self.process_manager.stopped_by_user or self.process_manager.stopped_by_proteus)
 
     def _session_stopped(self, session: dict) -> bool:
         """Whether the session was stopped (by Proteus, the user, or its end)."""
-        return bool(session["ended"]) or self._stopped_by_rose()
+        return bool(session["ended"]) or self._stopped_by_proteus()
 
     # -- mod installation ---------------------------------------------------
     @staticmethod
@@ -956,7 +956,7 @@ class OverlayManager:
                     "error",
                     "Injection failed: no mods could be installed into LTK Manager.",
                     details={"mods": "/".join(mod_names)},
-                    hint=f"Retry; if it keeps happening, report it with rose_*.log. {LTF_LOGS_HINT}",
+                    hint=f"Retry; if it keeps happening, report it with proteus_*.log. {LTF_LOGS_HINT}",
                 )
             return False
 
@@ -1226,7 +1226,7 @@ class OverlayManager:
             # A stop from the previous session must not count against this
             # one; a stop from now on does, even while LTK Manager starts
             self.process_manager.stopped_by_user = False
-            self.process_manager.stopped_by_rose = False
+            self.process_manager.stopped_by_proteus = False
 
         # The countdown's staging ends here (an in-flight one finishes first:
         # its mods are likely the ones this injection wants)
@@ -1234,7 +1234,7 @@ class OverlayManager:
         with self._stage_lock:
             session = self._acquire_session()
             if session is None:
-                return 0 if self._stopped_by_rose() else 1
+                return 0 if self._stopped_by_proteus() else 1
             if self._session_stopped(session):
                 log.info("[INJECT] Injection stopped while LTK Manager was starting")
                 self._end_session(session)
@@ -1271,7 +1271,7 @@ class OverlayManager:
                 return 1
 
         if not self._wait_for_patcher(session):
-            failed = bool(session["error"]) and not self._stopped_by_rose()
+            failed = bool(session["error"]) and not self._stopped_by_proteus()
             if failed:
                 log.error(f"[INJECT] LTK patcher failed: {session['error']}")
                 self._report_ltf_failure(session["error"])
@@ -1358,14 +1358,14 @@ class OverlayManager:
                         break
                 time.sleep(PROCESS_MONITOR_SLEEP_S)
 
-            if session["error"] and not self._stopped_by_rose():
+            if session["error"] and not self._stopped_by_proteus():
                 log.error(f"[INJECT] LTK patcher failed: {session['error']}")
         except Exception as e:
             log.error(f"[INJECT] LTF session error: {e}")
             if not session["error"]:
                 session["error"] = str(e)
         finally:
-            stopped = self._stopped_by_rose()
+            stopped = self._stopped_by_proteus()
             self._end_session(session)
 
         if stopped:
@@ -1524,7 +1524,7 @@ class OverlayManager:
                 "[INJECT] The LTK patcher joined the game too late - the overlay is not applied this game"
                 + (f" ({detail})" if detail else "")
             )
-            if not self._stopped_by_rose():
+            if not self._stopped_by_proteus():
                 self._report_ltf_failure(
                     "the game started before the LTK patcher was scanning (joined too late"
                     + (f": {detail})" if detail else ")")
@@ -1535,7 +1535,7 @@ class OverlayManager:
             check, seen = refused
             described = f"{check} ({seen})" if seen else check
             log.error(f"[INJECT] The LTK patcher refused the overlay: host verification failed {described}")
-            if not self._stopped_by_rose():
+            if not self._stopped_by_proteus():
                 self._report_ltf_failure(
                     f"LTK Manager's patcher refused the overlay (host verification failed: {described})"
                 )
@@ -1626,7 +1626,7 @@ class OverlayManager:
 
         if self.process_manager:
             self.process_manager.stopped_by_user = False
-            self.process_manager.stopped_by_rose = False
+            self.process_manager.stopped_by_proteus = False
 
         session = self._acquire_session()
         if session is None:
@@ -1718,7 +1718,7 @@ class OverlayManager:
     def _ltk_failure_hint(reason: str) -> str:
         """What the user can do about a session failure, by the cause it reported."""
         logs = LTF_LOGS_HINT
-        report = "report it with rose_*.log and those logs"
+        report = "report it with proteus_*.log and those logs"
         cause = ltk_failure_cause(reason)
         if cause == "cdp":
             return ("Proteus drives LTK Manager through the debugging port of its built-in browser, which did not "

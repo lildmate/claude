@@ -10,4 +10,4 @@ in the Cloudflare dashboard (`claude`).
 
 Address: `wss://claude.<subdomain>.workers.dev`. It goes into the
 `RELAY_URL` repository secret, which the Release workflow builds into
-Proteus. Setup steps: ../SAJAT_VERZIO.md
+Proteus. Setup steps: ../KARBANTARTAS.md

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "claude/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
 
   python:
     name: Python (errors lint, unit tests)
-    # Rose is Windows-only: several modules call ctypes.windll at import time.
+    # Proteus is Windows-only: several modules call ctypes.windll at import time.
     runs-on: windows-latest
     timeout-minutes: 20
     steps:

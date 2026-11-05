@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import main as rose_main
+import main as proteus_main
 from injection.tools.tools_manager import ToolsManager
 
 
@@ -38,27 +38,27 @@ class LtkManagerDialogTests(unittest.TestCase):
 
     def show(self, choices, picked=None, reason="no_manager", found=None):
         with (
-            patch.object(rose_main, "_show_native_dll_dialog", side_effect=choices) as dialog,
-            patch.object(rose_main, "_pick_ltk_manager", return_value=picked),
+            patch.object(proteus_main, "_show_native_dll_dialog", side_effect=choices) as dialog,
+            patch.object(proteus_main, "_pick_ltk_manager", return_value=picked),
             patch.object(ToolsManager, "detect_ltk_manager", return_value=found),
         ):
-            result = rose_main._show_dll_dialog(self.tools, reason=reason)
+            result = proteus_main._show_dll_dialog(self.tools, reason=reason)
         return result, dialog.call_count
 
     def test_the_text_explains_the_setup_and_offers_to_set_the_path(self):
-        _, status_title, body, steps, action = rose_main._dll_dialog_text("no_manager")
+        _, status_title, body, steps, action = proteus_main._dll_dialog_text("no_manager")
 
         self.assertEqual(action, "Set up path")
         self.assertIn("never have to open it yourself", body)
-        self.assertIn(rose_main.LTK_MANAGER_DOWNLOAD_URL, steps)
+        self.assertIn(proteus_main.LTK_MANAGER_DOWNLOAD_URL, steps)
         self.assertNotIn("config.ini", steps)
 
     def test_web_addresses_become_links_without_the_closing_parenthesis(self):
-        linked = rose_main._with_links("Install it (https://example.com/releases), then restart.")
+        linked = proteus_main._with_links("Install it (https://example.com/releases), then restart.")
 
         self.assertIn('<a href="https://example.com/releases">https://example.com/releases</a>)', linked)
 
-    def test_a_picked_ltk_manager_is_saved_and_rose_starts(self):
+    def test_a_picked_ltk_manager_is_saved_and_proteus_starts(self):
         result, shown = self.show(["fix"], picked=self.manager, found=self.manager)
 
         self.assertTrue(result)
@@ -83,14 +83,14 @@ class LtkManagerDialogTests(unittest.TestCase):
         self.set_config_option.assert_not_called()
         self.assertIn("is not LTK Manager", self.message_box.call_args[0][1])
 
-    def test_a_path_rose_cannot_save_is_reported(self):
+    def test_a_path_proteus_cannot_save_is_reported(self):
         result, shown = self.show(["fix", "close"], picked=self.manager, found=None)
 
         self.assertFalse(result)
         self.assertEqual(shown, 2)
         self.assertIn("could not save the path", self.message_box.call_args[0][1])
 
-    def test_closing_the_dialog_closes_rose(self):
+    def test_closing_the_dialog_closes_proteus(self):
         result, shown = self.show(["close"])
 
         self.assertFalse(result)

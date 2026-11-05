@@ -327,7 +327,7 @@ class InjectionSessionTests(LtfSessionTestCase):
     def test_an_import_answered_with_its_entry_is_not_looked_up_again(self):
         FakeBridge.full_install_answer = True
         FakeBridge.initial_library = [{"id": "user-mod", "name": "Map", "displayName": "Map", "enabled": True}]
-        mods = [self.make_mod(), self.make_mod("ROSE-LoadingName", "Loading screen name")]
+        mods = [self.make_mod(), self.make_mod("PROTEUS-LoadingName", "Loading screen name")]
 
         self.overlay.mk_run_overlay(mods, stop_callback=lambda: True)
 
@@ -421,7 +421,7 @@ class InjectionSessionTests(LtfSessionTestCase):
         self.assertEqual(self.process_manager.ltk_manager_process, (4242, None))
         self.assertEqual(self.state()["manager"]["pid"], 4242)
 
-    def test_a_reused_manager_rose_started_earlier_is_closed_after_the_game(self):
+    def test_a_reused_manager_proteus_started_earlier_is_closed_after_the_game(self):
         self.state_path.write_text(json.dumps({"manager": {"pid": 777, "created": None}}), encoding="utf-8")
         mod = self.make_mod()
 
@@ -558,7 +558,7 @@ class LibraryOwnershipTests(LtfSessionTestCase):
 
     user_mod = {"id": "user-mod", "name": "Eternal Aspect Leona", "displayName": "Eternal Aspect Leona", "enabled": True}
 
-    def test_a_user_mod_with_the_same_name_is_never_taken_for_roses(self):
+    def test_a_user_mod_with_the_same_name_is_never_taken_for_proteuss(self):
         FakeBridge.initial_library = [dict(self.user_mod)]
         mod = self.make_mod(display="Eternal Aspect Leona")
 
@@ -694,7 +694,7 @@ class EarlySessionTests(LtfSessionTestCase):
         self.assertIn("stop_patcher", names)
         self.assertNotIn("kill", names)  # a manager Proteus merely attached to stays up
 
-    def test_discard_closes_a_manager_rose_launched(self):
+    def test_discard_closes_a_manager_proteus_launched(self):
         no_bridge, run = self.launched()
         with no_bridge, run:
             self.overlay.start_patcher_early()
@@ -1000,7 +1000,7 @@ class ProcessManagerSessionTests(unittest.TestCase):
         self.process_manager.stop_overlay_process()
 
         self.assertEqual(self.stopped, ["stopped"])
-        self.assertTrue(self.process_manager.stopped_by_rose)
+        self.assertTrue(self.process_manager.stopped_by_proteus)
 
     def test_a_user_stop_ends_the_session_and_is_flagged(self):
         self.process_manager.stop_injection_by_user()
@@ -1012,14 +1012,14 @@ class ProcessManagerSessionTests(unittest.TestCase):
         self.process_manager.kill_all_runoverlay_processes()
 
         self.assertEqual(self.stopped, ["stopped"])
-        self.assertTrue(self.process_manager.stopped_by_rose)
+        self.assertTrue(self.process_manager.stopped_by_proteus)
 
     def test_a_stopping_session_without_a_stopper_does_not_raise(self):
         self.process_manager.set_session_stopper(None)
 
         self.process_manager.stop_overlay_process()
 
-        self.assertTrue(self.process_manager.stopped_by_rose)
+        self.assertTrue(self.process_manager.stopped_by_proteus)
 
     def test_a_broken_stopper_is_swallowed(self):
         def boom():
@@ -1029,7 +1029,7 @@ class ProcessManagerSessionTests(unittest.TestCase):
 
         self.process_manager.stop_overlay_process()
 
-        self.assertTrue(self.process_manager.stopped_by_rose)
+        self.assertTrue(self.process_manager.stopped_by_proteus)
 
     def test_clearing_keeps_a_newer_sessions_stopper(self):
         newer = lambda: None
@@ -1051,7 +1051,7 @@ class ProcessManagerSessionTests(unittest.TestCase):
             self.process_manager.kill_all_modtools_processes()
         return fake_psutil
 
-    def test_the_sweep_only_closes_the_ltk_manager_rose_started(self):
+    def test_the_sweep_only_closes_the_ltk_manager_proteus_started(self):
         process = FakeProcess("ltk-manager.exe")
 
         fake_psutil = self._sweep(process)
@@ -1075,7 +1075,7 @@ class ProcessManagerSessionTests(unittest.TestCase):
 
         self.assertFalse(process.terminated)
 
-    def test_nothing_is_closed_when_rose_started_no_ltk_manager(self):
+    def test_nothing_is_closed_when_proteus_started_no_ltk_manager(self):
         fake_psutil = self._sweep(FakeProcess("ltk-manager.exe"), registered=None)
 
         fake_psutil.Process.assert_not_called()
