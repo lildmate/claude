@@ -30,7 +30,7 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.13.0", open_folder=lambda w: True,
+             version="1.13.1", open_folder=lambda w: True,
              settings={"get": lambda: dict(settings), "set": settings.update},
              patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
 
@@ -49,27 +49,6 @@ api.champ_select = FakeChampSelect()
 api._auto_status = {"ok": True, "championId": 122, "lane": "Top", "opponent": 86, "source": "op.gg KR Challenger · ellenfél ellen"}
 print("counters", api.counters(86, "Top").get("counters", [])[:3])
 
-
-def probe_counters():
-    """What op.gg says about counters (printed in the CI log, to read their format)."""
-    import json as _json
-    from desktop.opgg import _objects_with
-    o = api.opgg
-    for rank in ("challenger", "emerald_plus"):
-        data = o._flight(f"/lol/champions?position=top&region=kr&tier={rank}")
-        for obj in _objects_with(data, '{"key":"garen"', '"positionName"'):
-            print("PROBE tier", rank, _json.dumps(obj.get("positionCounters"))[:600])
-            break
-    data = o._flight("/lol/champions/garen/counters/top?region=kr&tier=emerald_plus")
-    for word in ("win_rate", "winRate", "counter", "play"):
-        i = data.find(word)
-        print("PROBE counters page", word, repr(data[max(0, i - 300): i + 500]) if i >= 0 else "-")
-
-
-try:
-    probe_counters()
-except Exception as e:
-    print("PROBE failed", e)
 
 server = AppServer(api)
 server.start()

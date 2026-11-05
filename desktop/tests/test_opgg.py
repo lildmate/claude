@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from desktop.opgg import OpGG, champion_keys, flight, parse_rows, parse_runes, parse_tier_list, wider_ranks
+from desktop.opgg import OpGG, champion_keys, counter_detail, flight, parse_rows, parse_runes, parse_tier_list, wider_ranks
 
 
 def page(*chunks):
@@ -54,6 +54,12 @@ class OpGGTests(unittest.TestCase):
         rows = parse_rows(flight(page(ROWS)))
         self.assertEqual(rows["core_items"][0], {"ids": [3142, 3742], "skills": [], "games": 61, "winRate": 63.93})
         self.assertEqual(rows["starter_items"][0]["games"], 1422)
+
+
+class CounterTests(unittest.TestCase):
+    def test_the_counters_win_rate_is_the_rest_of_the_games(self):
+        self.assertEqual(counter_detail({"champion_id": 799, "play": 36, "win": 12}),
+                         {"championId": 799, "games": 36, "winRate": 66.7})
 
 
 class Response:

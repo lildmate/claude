@@ -116,18 +116,16 @@ def parse_tier_list(data: str, keys: Dict[str, int]) -> List[dict]:
 
 
 def counter_detail(raw: dict) -> dict:
-    """A counter of the tier list: the champion, and its games and win rate against
-    the champion when op.gg gives them (its win rate, as op.gg shows on counters)."""
+    """A counter of the tier list: the champion, the games against it and its win
+    rate in them. op.gg counts the wins of the champion the list is about
+    ({"champion_id": 799, "play": 36, "win": 12}: Garen won 12 of 36 against
+    Ambessa), so the counter's win rate is the rest."""
     detail = {"championId": raw.get("champion_id")}
-    games = raw.get("play") or raw.get("games")
-    wins = raw.get("win") or raw.get("wins")
-    rate = raw.get("win_rate") if raw.get("win_rate") is not None else raw.get("winRate")
+    games, wins = raw.get("play"), raw.get("win")
     if games:
         detail["games"] = int(games)
-    if rate is not None:
-        detail["winRate"] = round(float(rate) * (100 if float(rate) <= 1 else 1), 1)
-    elif games and wins is not None:
-        detail["winRate"] = round(100 * float(wins) / float(games), 1)
+        if wins is not None:
+            detail["winRate"] = round(100 * (float(games) - float(wins)) / float(games), 1)
     return detail
 
 
@@ -232,6 +230,22 @@ class OpGG:
             raise RuntimeError("op.gg has no tier list")
         return {"source": "op.gg", "version": version, "currentVersion": version, "region": REGION.upper(),
                 "rank": RANK_NAMES[used], "rankKey": used, "wantedRank": RANK_NAMES[wanted], "positions": positions}
+
+    def counters(self, champion_id: int, position: Optional[str], rank: Optional[str] = None) -> Optional[dict]:
+        """The champion's counters in its lane (its position first), from the
+        first rank, the chosen one or a wider one, that has them."""
+        for used in wider_ranks(rank):
+            try:
+                _, positions = self._tier_list_at(used)
+            except Exception as e:
+                log.info("[Window] op.gg counters %s failed: %s", used, e)
+                continue
+            ordered = [p for p in positions if p["key"] == position] + [p for p in positions if p["key"] != position]
+            for lane in ordered:
+                entry = next((c for c in lane["champions"] if c["championId"] == int(champion_id)), None)
+                if entry and entry.get("counterDetails"):
+                    return {"entry": entry, "position": lane["key"], "lane": lane["name"], "rank": RANK_NAMES[used]}
+        return None
 
     def champion_positions(self) -> Dict[int, List[str]]:
         """champion id -> its positions, most played first (Proteus keys)."""

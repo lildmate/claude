@@ -24,10 +24,10 @@ class OpGG:
         return {"runes": RUNES, "runePages": [{"runes": RUNES, "games": 9}], "items": [], "startItems": [], "spells": [],
                 "skills": [], "skillOrder": [], "games": 31, "version": "16.22", "rank": "Grandmaster+"}
 
-    def tier_list(self, rank=None):
-        return {"rank": "Challenger", "positions": [{"key": "Top", "name": "Top", "champions": [
-            {"championId": 86, "tier": "S", "winRate": 51.0, "counters": [122],
-             "counterDetails": [{"championId": 122, "winRate": 54.2}]}]}]}
+    def counters(self, champion_id, position, rank=None):
+        return {"entry": {"championId": 86, "tier": "S", "winRate": 51.0, "counters": [122, 64],
+                          "counterDetails": [{"championId": 64, "winRate": 50.5}, {"championId": 122, "winRate": 54.2}]},
+                "position": "Top", "lane": "Top", "rank": "Master+"}
 
 
 class ChampSelect:
@@ -80,7 +80,8 @@ class GameTests(unittest.TestCase):
 
     def test_counters(self):
         c = self.api.counters(86, "Top")
-        self.assertEqual(c["counters"], [{"championId": 122, "winRate": 54.2, "name": "Darius", "icon": None}])
+        self.assertEqual([x["name"] for x in c["counters"]], ["Darius", "Lee Sin"])  # the strongest first
+        self.assertEqual(c["rank"], "Master+")
 
 
 if __name__ == "__main__":

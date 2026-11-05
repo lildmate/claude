@@ -266,26 +266,23 @@ class AppAPI:
         return state
 
     def counters(self, champion_id: int, position: str, rank: Optional[str] = None) -> dict:
-        """The champions that beat this one in its lane (op.gg's tier list)."""
+        """The champions that beat this one in its lane, best first (op.gg's tier list)."""
         if not self.opgg:
             return {"available": False}
         try:
-            data = self.opgg.tier_list(rank)
+            found = self.opgg.counters(champion_id, position, rank)
         except Exception as e:
             log.warning("[Window] op.gg counters failed: %s", e)
+            found = None
+        if not found:
             return {"available": False}
         index = self._champion_index()
-        lanes = [p for p in data["positions"] if p["key"] == position] + [p for p in data["positions"] if p["key"] != position]
-        for lane in lanes:
-            entry = next((c for c in lane["champions"] if c["championId"] == int(champion_id)), None)
-            if not entry:
-                continue
-            details = entry.get("counterDetails") or [{"championId": c} for c in entry.get("counters") or []]
-            counters = [dict(d, name=(index.get(d["championId"]) or {}).get("name") or f"#{d['championId']}",
-                             icon=(index.get(d["championId"]) or {}).get("icon")) for d in details]
-            return {"available": True, "championId": int(champion_id), "position": lane["key"], "lane": lane["name"],
-                    "tier": entry["tier"], "winRate": entry["winRate"], "counters": counters, "rank": data.get("rank")}
-        return {"available": False}
+        entry = found["entry"]
+        counters = [dict(d, name=(index.get(d["championId"]) or {}).get("name") or f"#{d['championId']}",
+                         icon=(index.get(d["championId"]) or {}).get("icon")) for d in entry["counterDetails"]]
+        counters.sort(key=lambda c: -(c.get("winRate") or 0))
+        return {"available": True, "championId": int(champion_id), "position": found["position"], "lane": found["lane"],
+                "tier": entry["tier"], "winRate": entry["winRate"], "counters": counters, "rank": found["rank"]}
 
     _auto_status: Optional[dict] = None
     _auto_key = None
