@@ -1,0 +1,23 @@
+name: Probe patch notes (temporary)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - scripts/probe_patch_notes.py
+      - .github/workflows/probe-patch-notes.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Probe
+        run: python3 scripts/probe_patch_notes.py
