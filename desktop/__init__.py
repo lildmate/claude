@@ -66,6 +66,7 @@ def start(lcu, version: str) -> Optional[Window]:
         from utils.core.paths import get_asset_path, get_user_data_dir
 
         from .data import ClientData, GameData
+        from .meta import ChampSelect, DeepLol
         from .mods import Mods
         from .patchnotes import PatchNotes
         from .server import AppAPI, AppServer
@@ -84,6 +85,8 @@ def start(lcu, version: str) -> Optional[Window]:
             patch_notes=PatchNotes(),
             mods=Mods(),
             upload_dir=data_dir / "window-uploads",
+            meta=DeepLol(),
+            champ_select=ChampSelect(lcu),
         )
         server = AppServer(api)
         server.start()

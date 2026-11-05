@@ -137,18 +137,18 @@
   let renderId = 0;
 
   function route() {
-    const m = /^#\/([a-z]+)(?:\/(\d+))?/.exec(location.hash) || [null, "home"];
-    return { page: m[1], id: m[2] ? parseInt(m[2], 10) : null };
+    const m = /^#\/([a-z]+)(?:\/(\d+))?(?:\/([A-Za-z]+))?/.exec(location.hash) || [null, "home"];
+    return { page: m[1], id: m[2] ? parseInt(m[2], 10) : null, sub: m[3] || null };
   }
   async function render() {
     const id = ++renderId;
     const r = route();
     document.querySelectorAll(".nav").forEach((n) => {
-      const active = n.dataset.route === r.page;
+      const active = n.dataset.route === (r.page === "build" ? "tier" : r.page);
       n.classList.toggle("active", active);
       if (active) n.setAttribute("aria-current", "page"); else n.removeAttribute("aria-current");
     });
-    const pages = { home: renderHome, skins: renderSkins, mods: renderMods, patch: renderPatch, profile: renderProfile, settings: renderSettings };
+    const pages = { home: renderHome, skins: renderSkins, mods: renderMods, tier: renderTier, build: renderBuild, patch: renderPatch, profile: renderProfile, settings: renderSettings };
     const fn = pages[r.page] || renderHome;
     let content;
     try {
@@ -451,6 +451,99 @@
         h("h2", { text: "3. Válaszd ki champion selectben" }),
         h("div", { class: "muted small", text: "Champion selectben jobb alul a „Mods” gombbal tudod kiválasztani, hogy a skin helyett a saját skined legyen rajtad." })),
       listBox);
+  }
+
+  // -- tier list and builds ---------------------------------------------------------
+  let tierPosition = "Middle";
+  const SKILL_KEYS = { 1: "Q", 2: "W", 3: "E", 4: "R" };
+
+  async function champSelectCard() {
+    let cs;
+    try { cs = await api("/api/champ-select"); } catch (e) { return null; }
+    if (!cs.inChampSelect) return null;
+    if (!championsCache) championsCache = (await api("/api/champions")).champions;
+    const champ = championsCache.find((c) => c.id === cs.championId);
+    return h("div", { class: "card cs-card" },
+      picture(champ && champ.icon, "pn-icon big", ""),
+      h("div", { class: "cs-text" }, h("div", { class: "stat-label", text: cs.locked ? "Lezárt championöd" : "Kiválasztott championöd" }),
+        h("div", { class: "stat-value", text: champ ? champ.name : "#" + cs.championId })),
+      h("a", { class: "btn primary", href: "#/build/" + cs.championId, text: "Build megnyitása" }));
+  }
+
+  async function renderTier() {
+    const [data, cs] = await Promise.all([api("/api/tierlist"), champSelectCard()]);
+    if (!data.available) return page("Tier list", h("div", { class: "card empty", text: "Most nem sikerült betölteni a tier listet." }));
+    const position = data.positions.find((p) => p.key === tierPosition) || data.positions[0];
+    const tabs = h("div", { class: "chips", role: "group", "aria-label": "Pozíció" }, data.positions.map((p) =>
+      h("button", { class: "chip" + (p.key === position.key ? " on" : ""), "aria-pressed": p.key === position.key ? "true" : "false",
+        text: p.name, onclick: () => { tierPosition = p.key; render(); } })));
+    const table = h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, ["#", "Champion", "Tier", "Winrate", "Pickrate", "Banrate"].map((t) => h("th", { scope: "col", text: t })))),
+      h("tbody", {}, position.champions.map((c) => h("tr", {},
+        h("td", { class: "muted", text: c.rank }),
+        h("td", {}, h("a", { class: "match-champ pn-link", href: "#/build/" + c.championId + "/" + position.key },
+          picture(c.icon, "", ""), c.name)),
+        h("td", {}, h("span", { class: "tier-badge t" + c.tierNumber, text: c.tier })),
+        h("td", { text: c.winRate + "%" }),
+        h("td", { class: "muted", text: c.pickRate + "%" }),
+        h("td", { class: "muted", text: c.banRate + "%" }))))));
+    return page("Tier list", cs,
+      h("div", { class: "card" },
+        h("div", { class: "section-head" }, tabs,
+          h("span", { class: "muted small", text: "Forrás: " + data.source + " · " + data.region + " " + data.rank + " · patch " + data.version })),
+        table));
+  }
+
+  function iconRow(list, cls) {
+    return h("div", { class: "build-row" }, list.map((x) => h("span", { class: "build-chip " + (cls || "") },
+      picture(x.icon, "", ""), h("span", { text: x.name }))));
+  }
+
+  async function renderBuild(r) {
+    const data = await api("/api/builds/" + r.id);
+    if (!data.available || !data.lanes.length) {
+      return page("Build", h("div", { class: "card empty", text: "Ehhez a championhöz most nincs build adat." }));
+    }
+    const lane = data.lanes.find((l) => l.key === r.sub) || data.lanes[0];
+    let index = 0;
+    const box = h("div", {});
+    const onetricks = "https://www.onetricks.gg/champions/ranking/" + encodeURIComponent((data.championName || "").replace(/[^A-Za-z]/g, ""));
+    function draw() {
+      const b = lane.builds[index];
+      const v = b.view;
+      const status = h("div", { class: "muted small" });
+      box.replaceChildren(h("div", { class: "card build-card" },
+        lane.builds.length > 1 ? h("div", { class: "chips" }, lane.builds.map((_, i) => h("button", {
+          class: "chip" + (i === index ? " on" : ""), text: (i + 1) + ". build", onclick: () => { index = i; draw(); } }))) : null,
+        h("h2", { text: "Rúnák" }),
+        h("div", { class: "rune-cols" },
+          h("div", {}, iconRow([v.primaryStyle], "style"), iconRow(v.primary)),
+          h("div", {}, iconRow([v.subStyle], "style"), iconRow(v.secondary), iconRow(v.shards, "shard"))),
+        h("h2", { text: "Summoner spellek" }), iconRow(v.spells),
+        h("h2", { text: "Kezdő tárgyak" }), iconRow(v.startItems),
+        h("h2", { text: "Tárgyak sorrendben" }), iconRow(v.items),
+        h("h2", { text: "Skill sorrend" }),
+        h("div", { class: "build-row" }, h("span", { class: "skill-max", text: b.skills.map((k) => SKILL_KEYS[k] || k).join(" › ") }),
+          h("span", { class: "muted small", text: b.skillOrder.map((k) => SKILL_KEYS[k] || k).join(" ") })),
+        h("div", { class: "row-actions" },
+          h("button", { class: "btn primary", text: "Rúnák és spellek beállítása", onclick: async (e) => {
+            e.currentTarget.disabled = true;
+            try {
+              await api("/api/apply-build", { championId: data.championId, lane: lane.key, index });
+              status.textContent = "Beállítva: a rúnaoldal „Proteus” néven került be.";
+            } catch (err) { status.textContent = "Nem sikerült: indítsd el a League klienst, és légy champion selectben."; }
+            e.currentTarget.disabled = false;
+          } }),
+          h("a", { class: "btn", href: onetricks, target: "_blank", rel: "noopener", text: "onetricks.gg ranking" })),
+        status));
+    }
+    draw();
+    const laneTabs = h("div", { class: "chips", role: "group", "aria-label": "Pozíció" }, data.lanes.map((l) =>
+      h("a", { class: "chip chip-link" + (l.key === lane.key ? " on" : ""), href: "#/build/" + data.championId + "/" + l.key, text: l.name })));
+    return page((data.championName || "Build") + " build",
+      h("div", { class: "card build-head" }, picture(data.championIcon, "pn-icon big", ""), laneTabs,
+        h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version })),
+      box);
   }
 
   // -- patch notes -------------------------------------------------------------------

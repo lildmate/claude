@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from desktop.data import ClientData, GameData  # noqa: E402
+from desktop.meta import DeepLol  # noqa: E402
 from desktop.patchnotes import PatchNotes  # noqa: E402
 from desktop.server import AppAPI, AppServer  # noqa: E402
 from desktop.store import Favorites, NextSkins  # noqa: E402
@@ -29,7 +30,7 @@ api = AppAPI(game, ClientData(None, game), favorites,
                        clear=lambda c: history.pop(str(c), None)),
              version="1.7.0", open_folder=lambda w: True,
              settings={"get": lambda: {"windowOnStart": True}, "set": lambda b: None},
-             patch_notes=PatchNotes())
+             patch_notes=PatchNotes(), meta=DeepLol())
 server = AppServer(api)
 server.start()
 
@@ -48,6 +49,12 @@ with sync_playwright() as p:
     page.mouse.wheel(0, 900)
     page.wait_for_timeout(1500)
     page.screenshot(path=str(out / "4_patch_notes_reszletek.png"))
+    page.goto(server.url.split("#")[0] + "#/tier")
+    page.wait_for_timeout(8000)
+    page.screenshot(path=str(out / "5_tier_list.png"))
+    page.goto(server.url.split("#")[0] + "#/build/103/Middle")
+    page.wait_for_timeout(8000)
+    page.screenshot(path=str(out / "6_build.png"), full_page=True)
     browser.close()
 server.stop()
 print("saved", sorted(x.name for x in out.iterdir()))

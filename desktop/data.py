@@ -197,6 +197,21 @@ class GameData:
         result.sort(key=lambda c: c["name"].casefold())
         return result
 
+    def lookup(self, kind: str) -> Dict[int, dict]:
+        """id -> {name, icon} for 'perks', 'styles', 'items' or 'spells'."""
+        paths = {"perks": "v1/perks.json", "styles": "v1/perkstyles.json", "items": "v1/items.json",
+                 "spells": "v1/summoner-spells.json"}
+        data = self._get_json(GAME_DATA_PREFIX + paths[kind])
+        if kind == "styles" and isinstance(data, dict):
+            data = data.get("styles")
+        result = {}
+        for entry in data or []:
+            try:
+                result[int(entry.get("id"))] = {"name": entry.get("name") or "", "icon": image_url(entry.get("iconPath"))}
+            except (TypeError, ValueError, AttributeError):
+                continue
+        return result
+
     def champion_name(self, champion_id: int) -> str:
         for champ in self.champions():
             if champ["id"] == champion_id:

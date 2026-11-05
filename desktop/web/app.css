@@ -172,6 +172,26 @@ a.btn.primary { color: #141109; }
 .mod-list { list-style: none; margin: 10px 0 0; padding: 0; }
 .mod-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #1c2840; }
 
+/* tier list and builds */
+.tier-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 26px; border-radius: 8px; font-weight: 700; background: var(--card-2); }
+.tier-badge.t0 { background: #5a2a2a; color: #ffb3b3; }
+.tier-badge.t1 { background: #4a3a14; color: #f1d28c; }
+.tier-badge.t2 { background: #16304f; color: #a9ccff; }
+.tier-badge.t3 { background: #173a2e; color: #bff0dc; }
+.tier-badge.t4, .tier-badge.t5 { background: var(--card-2); color: var(--muted); }
+.cs-card { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-color: var(--gold); }
+.cs-text { flex: 1; }
+.build-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.chip-link { display: inline-flex; align-items: center; text-decoration: none; }
+.build-card h2 { margin: 18px 0 8px; }
+.build-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.build-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--side); border: 1px solid var(--line); border-radius: 10px; padding: 5px 10px 5px 5px; font-size: 13px; }
+.build-chip img { width: 30px; height: 30px; border-radius: 6px; background: var(--line); }
+.build-chip.style { font-weight: 600; border-color: var(--line-2); }
+.build-chip.shard img { width: 22px; height: 22px; }
+.rune-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.skill-max { font: 700 18px var(--display); color: var(--gold); margin-right: 12px; }
+
 /* patch notes */
 .tag.buff { background: var(--win-bg); color: var(--win-fg); }
 .tag.nerf { background: var(--loss-bg); color: var(--loss-fg); }

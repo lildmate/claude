@@ -48,7 +48,9 @@ class AppAPI:
     def __init__(self, game: GameData, client: ClientData, favorites: Favorites, next_skins: NextSkins,
                  version: str = "", open_folder: Optional[Callable[[str], bool]] = None,
                  settings: Optional[dict] = None, patch_notes=None, mods=None,
-                 upload_dir: Optional[Path] = None):
+                 upload_dir: Optional[Path] = None, meta=None, champ_select=None):
+        self.meta = meta
+        self.champ_select = champ_select
         self.patch_notes = patch_notes
         self.mods = mods
         self.upload_dir = upload_dir
@@ -98,6 +100,63 @@ class AppAPI:
                 icons.setdefault(champ["alias"].casefold(), champ["icon"])
         champions = [dict(c, icon=icons.get(c["name"].casefold())) for c in notes["champions"]]
         return dict(notes, champions=champions, available=True)
+
+    def _champion_index(self) -> dict:
+        return {c["id"]: c for c in self.game.champions()}
+
+    def tier_list(self) -> dict:
+        if not self.meta:
+            return {"available": False}
+        data = self.meta.tier_list()
+        champs = self._champion_index()
+        for position in data["positions"]:
+            for entry in position["champions"]:
+                champ = champs.get(entry["championId"]) or {}
+                entry["name"] = champ.get("name") or f"#{entry['championId']}"
+                entry["icon"] = champ.get("icon")
+        return dict(data, available=True)
+
+    def builds(self, champion_id: int) -> dict:
+        if not self.meta:
+            return {"available": False}
+        data = self.meta.builds(champion_id)
+        perks, styles = self.game.lookup("perks"), self.game.lookup("styles")
+        items, spells = self.game.lookup("items"), self.game.lookup("spells")
+        named = lambda table, ids: [dict(table.get(int(i), {"name": str(i), "icon": None}), id=int(i)) for i in ids]  # noqa: E731
+        for lane in data["lanes"]:
+            for build in lane["builds"]:
+                r = build["runes"]
+                build["view"] = {
+                    "primaryStyle": named(styles, [r["primaryStyle"]])[0],
+                    "subStyle": named(styles, [r["subStyle"]])[0],
+                    "primary": named(perks, r["primary"]),
+                    "secondary": named(perks, r["secondary"]),
+                    "shards": named(perks, r["shards"]),
+                    "items": named(items, build["items"]),
+                    "startItems": named(items, build["startItems"]),
+                    "spells": named(spells, build["spells"]),
+                }
+        champ = self._champion_index().get(int(champion_id)) or {}
+        return dict(data, available=True, championName=champ.get("name") or "", championIcon=champ.get("icon"))
+
+    def champ_select_state(self) -> dict:
+        state = self.champ_select.locked() if self.champ_select else None
+        return {"inChampSelect": state is not None, **(state or {})}
+
+    def apply_build(self, body: dict) -> dict:
+        if not self.meta or not self.champ_select:
+            raise ValueError("nincs build")
+        champion_id, lane, index = int(body["championId"]), str(body["lane"]), int(body.get("index") or 0)
+        data = self.meta.builds(champion_id)
+        lane_data = next((l for l in data["lanes"] if l["key"] == lane), None)  # noqa: E741
+        if not lane_data or index >= len(lane_data["builds"]):
+            raise ValueError("nincs ilyen build")
+        build = lane_data["builds"][index]
+        name = (self._champion_index().get(champion_id) or {}).get("name") or str(champion_id)
+        self.champ_select.apply_runes(f"{name} {lane_data['name']}", build["runes"])
+        if body.get("spells", True):
+            self.champ_select.apply_spells(build["spells"])
+        return {"ok": True}
 
     def mod_list(self, champion_id: int) -> dict:
         if not self.mods:
@@ -228,6 +287,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/api/next-skin": api.set_next_skin,
             "/api/open-folder": api.open,
             "/api/settings": api.put_settings,
+            "/api/apply-build": api.apply_build,
         }
         handler = routes.get(url.path)
         if handler is None:
@@ -236,6 +296,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, handler(body))
         except (KeyError, TypeError, ValueError) as e:
             return self._json(400, {"error": str(e)})
+        except RuntimeError as e:
+            return self._json(409, {"error": str(e)})
         except Exception as e:
             log.warning("[Window] %s failed: %s", url.path, e)
             return self._json(500, {"error": "internal"})
@@ -325,6 +387,16 @@ class _Handler(BaseHTTPRequestHandler):
             except ValueError:
                 return self._json(400, {"error": "bad id"})
             return self._json(200, api.mod_list(champion_id))
+        if path == "/api/tierlist":
+            return self._json(200, api.tier_list())
+        if path.startswith("/api/builds/"):
+            try:
+                champion_id = int(path.rsplit("/", 1)[1])
+            except ValueError:
+                return self._json(400, {"error": "bad id"})
+            return self._json(200, api.builds(champion_id))
+        if path == "/api/champ-select":
+            return self._json(200, api.champ_select_state())
         if path == "/api/patch-notes":
             return self._json(200, api.latest_patch_notes())
         if path == "/api/settings":

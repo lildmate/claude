@@ -137,6 +137,7 @@ hiddenimports = [
     # The Proteus window
     'desktop',
     'desktop.data',
+    'desktop.meta',
     'desktop.mods',
     'desktop.patchnotes',
     'desktop.server',
