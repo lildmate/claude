@@ -2,8 +2,8 @@
 ; This creates a proper Windows installer that registers the app
 
 #define MyAppName "Proteus"
-#define MyAppVersion "1.12.1"
-#define MyAppVersionInfo "1.12.1.0"
+#define MyAppVersion "1.13.0"
+#define MyAppVersionInfo "1.13.0.0"
 #define MyAppPublisher "lildmate"
 #define MyAppURL "https://github.com/lildmate/claude"
 #define MyAppExeName "Proteus.exe"

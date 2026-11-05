@@ -342,6 +342,10 @@ class MessageHandler:
             self._handle_party_get_state(payload)
         elif payload_type == "rank-display-get":
             self._send_rank_display()
+        elif payload_type == "rank-display-debug":
+            lines = payload.get("lines") or []
+            log.info("[Profile] Rank addresses seen by the client (%s overrides):\n  %s", payload.get("ranks"),
+                     "\n  ".join(str(line)[:200] for line in lines[:80]))
         elif payload.get("skin"):
             # Handle skin detection message
             self._handle_skin_detection(payload)

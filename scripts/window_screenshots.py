@@ -30,9 +30,24 @@ for skin in (103015, 157009, 99007, 222020):
 api = AppAPI(game, ClientData(None, game), favorites,
              NextSkins(read_all=lambda: dict(history), write=lambda c, s: history.__setitem__(str(c), s),
                        clear=lambda c: history.pop(str(c), None)),
-             version="1.12.1", open_folder=lambda w: True,
+             version="1.13.0", open_folder=lambda w: True,
              settings={"get": lambda: dict(settings), "set": settings.update},
              patch_notes=PatchNotes(), meta=DeepLol(), opgg=OpGG())
+
+
+class FakeChampSelect:
+    """Champion select as the client would report it: Darius top, Garen among the enemies."""
+    def locked(self):
+        return {"championId": 122, "locked": True, "position": "Top", "enemies": [86, 64, 103, 222, 412]}
+
+    def game_state(self):
+        return {"phase": "ChampSelect", "championId": 122, "locked": True, "position": "Top",
+                "allies": [{"championId": 122, "position": "Top", "me": True}], "enemies": [86, 64, 103, 222, 412]}
+
+
+api.champ_select = FakeChampSelect()
+api._auto_status = {"ok": True, "championId": 122, "lane": "Top", "opponent": 86, "source": "op.gg KR Challenger · ellenfél ellen"}
+print("counters", api.counters(122, "Top")["counters"][:3] if api.counters(122, "Top").get("available") else "none")
 server = AppServer(api)
 server.start()
 
@@ -61,6 +76,9 @@ with sync_playwright() as p:
     page.goto(server.url.split("#")[0] + "#/build/122/Top/86")
     page.wait_for_timeout(10000)
     page.screenshot(path=str(out / "7_darius_vs_garen.png"), full_page=True)
+    page.goto(server.url.split("#")[0] + "#/game")
+    page.wait_for_timeout(15000)
+    page.screenshot(path=str(out / "9_game.png"), full_page=True)
     page.goto(server.url.split("#")[0] + "#/profile")
     page.wait_for_timeout(3000)
     page.screenshot(path=str(out / "8_profil_szerkesztese.png"))

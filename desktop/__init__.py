@@ -16,6 +16,8 @@ from utils.core.logging import get_logger
 log = get_logger()
 
 WINDOW_ON_START_OPTION = ("General", "window_on_start")
+AUTO_RUNES_OPTION = ("General", "auto_runes")
+BUILD_RANK_OPTION = ("General", "build_rank")
 
 
 class Window:
@@ -49,11 +51,20 @@ def _settings():
         value = (get_config_option(*WINDOW_ON_START_OPTION, "true") or "true").strip().lower()
         from . import rank_display
 
-        return {"windowOnStart": value not in ("0", "false", "no", "off"), "rankDisplay": rank_display.own()}
+        auto = (get_config_option(*AUTO_RUNES_OPTION, "true") or "true").strip().lower()
+        return {"windowOnStart": value not in ("0", "false", "no", "off"), "rankDisplay": rank_display.own(),
+                "autoRunes": auto not in ("0", "false", "no", "off"),
+                "buildRank": (get_config_option(*BUILD_RANK_OPTION, "") or "").strip() or None}
 
     def put(body: dict):
         if "windowOnStart" in body:
             set_config_option(*WINDOW_ON_START_OPTION, "true" if body["windowOnStart"] else "false")
+        if "autoRunes" in body:
+            set_config_option(*AUTO_RUNES_OPTION, "true" if body["autoRunes"] else "false")
+        if "buildRank" in body:
+            from .opgg import RANK_NAMES
+
+            set_config_option(*BUILD_RANK_OPTION, body["buildRank"] if body["buildRank"] in RANK_NAMES else "")
         if "rankDisplay" in body:
             from . import rank_display
 
@@ -64,6 +75,21 @@ def _settings():
 
 def open_on_start() -> bool:
     return _settings()["get"]()["windowOnStart"]
+
+
+def _start_auto_runes(api) -> None:
+    import threading
+    import time
+
+    def loop():
+        while True:
+            try:
+                api.auto_runes_tick()
+            except Exception as e:
+                log.debug("[Window] Automatic runes: %s", e)
+            time.sleep(2)
+
+    threading.Thread(target=loop, name="ProteusAutoRunes", daemon=True).start()
 
 
 def start(lcu, version: str) -> Optional[Window]:
@@ -98,6 +124,7 @@ def start(lcu, version: str) -> Optional[Window]:
         )
         server = AppServer(api)
         server.start()
+        _start_auto_runes(api)
         icon = None
         try:
             icon_path = get_asset_path("icon.ico")

@@ -186,6 +186,34 @@ class ChampSelect:
         return {"championId": int(me["championId"]), "locked": locked,
                 "position": CLIENT_POSITIONS.get((me.get("assignedPosition") or "").lower()), "enemies": enemies}
 
+    def game_state(self) -> dict:
+        """Where the client is: phase, queue time, and in champion select the
+        picks of both teams (also before you have picked)."""
+        if not self._ok():
+            return {"phase": "Offline"}
+        phase = self.lcu.get("/lol-gameflow/v1/gameflow-phase", timeout=2)
+        state = {"phase": phase if isinstance(phase, str) else "None"}
+        if state["phase"] == "Matchmaking":
+            search = self.lcu.get("/lol-matchmaking/v1/search", timeout=2) or {}
+            if isinstance(search, dict):
+                state["timeInQueue"] = search.get("timeInQueue")
+                state["estimatedQueueTime"] = search.get("estimatedQueueTime")
+        if state["phase"] in ("ChampSelect", "InProgress", "GameStart", "Reconnect"):
+            pick = self.locked() if state["phase"] == "ChampSelect" else None
+            session = self.lcu.get("/lol-champ-select/v1/session", timeout=2) if state["phase"] == "ChampSelect" else None
+            if isinstance(session, dict):
+                me_cell = session.get("localPlayerCellId")
+                state["allies"] = [{"championId": int(p.get("championId") or p.get("championPickIntent") or 0),
+                                    "position": CLIENT_POSITIONS.get((p.get("assignedPosition") or "").lower()),
+                                    "me": p.get("cellId") == me_cell}
+                                   for p in session.get("myTeam") or []]
+                state["enemies"] = [int(p["championId"]) for p in session.get("theirTeam") or [] if p.get("championId")]
+                me = next((p for p in state["allies"] if p["me"]), None)
+                state["position"] = me["position"] if me else None
+            if pick:
+                state.update(championId=pick["championId"], locked=pick["locked"], position=pick["position"] or state.get("position"))
+        return state
+
     def apply_runes(self, name: str, runes: dict) -> None:
         if not self._ok():
             raise RuntimeError("A League kliens nem fut")

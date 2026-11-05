@@ -196,6 +196,14 @@ class AppAPI:
                     "startItems": named(items, build["startItems"]),
                     "spells": named(spells, build["spells"]),
                 }
+                build["runePagesView"] = [{
+                    "games": page.get("games"), "pickRate": page.get("pickRate"),
+                    "primaryStyle": named(styles, [page["runes"]["primaryStyle"]])[0],
+                    "subStyle": named(styles, [page["runes"]["subStyle"]])[0],
+                    "primary": named(perks, page["runes"]["primary"]),
+                    "secondary": named(perks, page["runes"]["secondary"]),
+                    "shards": named(perks, page["runes"]["shards"]),
+                } for page in build.get("runePages") or []]
         index = self._champion_index()
         champ = index.get(int(champion_id)) or {}
         opponent = index.get(int(opponent_id)) if opponent_id else None
@@ -221,6 +229,101 @@ class AppAPI:
                 log.debug("[Window] Opponent guess failed: %s", e)
         return {"inChampSelect": True, **state, "opponentGuess": guess}
 
+    def _setting(self, key: str, default=None):
+        try:
+            return (self.settings.get("get") or (lambda: {}))().get(key, default)
+        except Exception:
+            return default
+
+    def _guess_opponent(self, champion_id: Optional[int], position: Optional[str], enemies: List[int]):
+        """(your position, the enemy most likely in your lane) by op.gg's main positions."""
+        if not self.opgg or not enemies:
+            return position, None
+        try:
+            positions = self.opgg.champion_positions()
+        except Exception as e:
+            log.debug("[Window] Opponent guess failed: %s", e)
+            return position, None
+        mine = position or ((positions.get(champion_id) or [None])[0] if champion_id else None)
+        if not mine:
+            return None, None
+        main = [e for e in enemies if (positions.get(e) or [None])[0] == mine]
+        any_ = [e for e in enemies if mine in (positions.get(e) or [])]
+        return mine, (main or any_ or [None])[0]
+
+    def game_state(self) -> dict:
+        """The Game page: queue, champion select (both teams, your lane opponent) or the game."""
+        state = self.champ_select.game_state() if self.champ_select else {"phase": "Offline"}
+        enemies = state.get("enemies") or []
+        if state.get("phase") == "ChampSelect":
+            mine = next((a for a in state.get("allies") or [] if a.get("me")), None)
+            hovered = state.get("championId") or (mine or {}).get("championId") or None
+            position, guess = self._guess_opponent(hovered, state.get("position"), enemies)
+            state.update(position=position, opponentGuess=guess, autoRunes=self._auto_status)
+        index = self._champion_index()
+        named = lambda cid: {"id": cid, "name": (index.get(cid) or {}).get("name") or f"#{cid}", "icon": (index.get(cid) or {}).get("icon")}  # noqa: E731
+        state["champions"] = {str(c): named(c) for c in set(enemies) | {a.get("championId") for a in state.get("allies") or []} | {state.get("championId")} if c}
+        return state
+
+    def counters(self, champion_id: int, position: str, rank: Optional[str] = None) -> dict:
+        """The champions that beat this one in its lane (op.gg's tier list)."""
+        if not self.opgg:
+            return {"available": False}
+        try:
+            data = self.opgg.tier_list(rank)
+        except Exception as e:
+            log.warning("[Window] op.gg counters failed: %s", e)
+            return {"available": False}
+        index = self._champion_index()
+        lanes = [p for p in data["positions"] if p["key"] == position] + [p for p in data["positions"] if p["key"] != position]
+        for lane in lanes:
+            entry = next((c for c in lane["champions"] if c["championId"] == int(champion_id)), None)
+            if not entry:
+                continue
+            details = entry.get("counterDetails") or [{"championId": c} for c in entry.get("counters") or []]
+            counters = [dict(d, name=(index.get(d["championId"]) or {}).get("name") or f"#{d['championId']}",
+                             icon=(index.get(d["championId"]) or {}).get("icon")) for d in details]
+            return {"available": True, "championId": int(champion_id), "position": lane["key"], "lane": lane["name"],
+                    "tier": entry["tier"], "winRate": entry["winRate"], "counters": counters, "rank": data.get("rank")}
+        return {"available": False}
+
+    _auto_status: Optional[dict] = None
+    _auto_key = None
+
+    def auto_runes_tick(self) -> None:
+        """Called every few seconds: once your champion is locked in, its build's
+        runes and spells go in (Beállítások: automatikus rúnák)."""
+        if not self.champ_select or not self._setting("autoRunes", True):
+            return
+        try:
+            pick = self.champ_select.locked()
+        except Exception:
+            pick = None
+        if not pick:
+            self._auto_key, self._auto_status = None, None
+            return
+        if not pick.get("locked"):
+            return
+        position, opponent = self._guess_opponent(pick["championId"], pick.get("position"), pick.get("enemies") or [])
+        key = (pick["championId"], position, opponent)
+        if key == self._auto_key:
+            return
+        self._auto_key = key
+        rank = self._setting("buildRank", None)
+        try:
+            lanes, _, _ = self._lane_builds(pick["championId"], opponent, rank)
+            lane = next((l for l in lanes if l["key"] == position), lanes[0] if lanes else None)  # noqa: E741
+            if not lane:
+                raise ValueError("no build")
+            self.apply_build({"championId": pick["championId"], "lane": lane["key"], "index": 0,
+                              "opponent": opponent, "rank": rank})
+            self._auto_status = {"ok": True, "championId": pick["championId"], "lane": lane["name"], "opponent": opponent,
+                                 "source": lane["builds"][0].get("source")}
+            log.info("[Window] Runes set for %s %s (vs %s)", pick["championId"], lane["key"], opponent)
+        except Exception as e:
+            self._auto_status = {"ok": False, "championId": pick["championId"], "error": str(e)}
+            log.warning("[Window] Automatic runes failed: %s", e)
+
     def apply_build(self, body: dict) -> dict:
         if not self.champ_select:
             raise ValueError("nincs build")
@@ -231,8 +334,12 @@ class AppAPI:
         if not lane_data or index >= len(lane_data["builds"]):
             raise ValueError("nincs ilyen build")
         build = lane_data["builds"][index]
+        runes = build["runes"]
+        pages = build.get("runePages") or []
+        if body.get("page") is not None and 0 <= int(body["page"]) < len(pages):
+            runes = pages[int(body["page"])]["runes"]
         name = (self._champion_index().get(champion_id) or {}).get("name") or str(champion_id)
-        self.champ_select.apply_runes(f"{name} {lane_data['name']}", build["runes"])
+        self.champ_select.apply_runes(f"{name} {lane_data['name']}", runes)
         if body.get("spells", True) and build.get("spells"):
             self.champ_select.apply_spells(build["spells"])
         return {"ok": True}
@@ -475,6 +582,15 @@ class _Handler(BaseHTTPRequestHandler):
             except ValueError:
                 return self._json(400, {"error": "bad id"})
             return self._json(200, api.builds(champion_id, opponent, (query.get("rank") or [None])[0]))
+        if path == "/api/game":
+            return self._json(200, api.game_state())
+        if path.startswith("/api/counters/"):
+            try:
+                champion_id = int(path.rsplit("/", 1)[1])
+            except ValueError:
+                return self._json(400, {"error": "bad id"})
+            first = lambda key: (query.get(key) or [""])[0] or None  # noqa: E731
+            return self._json(200, api.counters(champion_id, first("pos") or "", first("rank")))
         if path == "/api/champ-select":
             return self._json(200, api.champ_select_state())
         if path == "/api/patch-notes":

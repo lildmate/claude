@@ -109,9 +109,26 @@ def parse_tier_list(data: str, keys: Dict[str, int]) -> List[dict]:
             "pickRate": round(float(obj.get("positionPickRate") or 0), 1),
             "banRate": round(float(obj.get("positionBanRate") or 0), 1),
             "counters": [c.get("champion_id") for c in obj.get("positionCounters") or [] if c.get("champion_id")],
+            "counterDetails": [counter_detail(c) for c in obj.get("positionCounters") or [] if c.get("champion_id")],
         })
     result.sort(key=lambda e: e["rank"])
     return result
+
+
+def counter_detail(raw: dict) -> dict:
+    """A counter of the tier list: the champion, and its games and win rate against
+    the champion when op.gg gives them (its win rate, as op.gg shows on counters)."""
+    detail = {"championId": raw.get("champion_id")}
+    games = raw.get("play") or raw.get("games")
+    wins = raw.get("win") or raw.get("wins")
+    rate = raw.get("win_rate") if raw.get("win_rate") is not None else raw.get("winRate")
+    if games:
+        detail["games"] = int(games)
+    if rate is not None:
+        detail["winRate"] = round(float(rate) * (100 if float(rate) <= 1 else 1), 1)
+    elif games and wins is not None:
+        detail["winRate"] = round(100 * float(wins) / float(games), 1)
+    return detail
 
 
 def parse_runes(data: str) -> List[dict]:
@@ -270,6 +287,7 @@ class OpGG:
             items.extend(i for i in row["ids"] if i not in items)
         return {
             "runes": runes[0]["runes"],
+            "runePages": runes[:2],
             "items": items,
             "startItems": list(starter["ids"]) if starter else [],
             "spells": [],  # not in op.gg's tables: filled from deeplol.gg

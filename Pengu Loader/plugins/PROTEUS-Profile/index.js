@@ -21,6 +21,17 @@
   let me = null; // {summonerId, puuid}
   const nativeFetch = window.fetch.bind(window);
 
+  // What the client asked about ranks, for the log (Beállítások → Naplók)
+  const seen = new Map(); // address without ids -> [count, changed]
+  function note(url, changed) {
+    if (!/regalia|ranked|lol-lobby\/v2\/lobby|hovercard|summoner-profile|profile/i.test(url)) return;
+    const key = url.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/gi, "{puuid}").replace(/\/\d{5,}/g, "/{id}").split("?")[0];
+    const entry = seen.get(key) || [0, false];
+    entry[0] += 1;
+    entry[1] = entry[1] || changed;
+    seen.set(key, entry);
+  }
+
   function rankFor(url) {
     const match = RANK_URL.exec(url);
     if (!match || !ranks.size) return null;
@@ -42,8 +53,13 @@
     const division = APEX.includes(rank.tier) ? "NA" : rank.division;
     const out = {};
     for (const [key, v] of Object.entries(value)) {
-      if ((key === "tier" || /Tier$/.test(key) || key === "lastSeasonHighestRank") && isTier(v)) out[key] = rank.tier;
-      else if ((key === "division" || /Division$/.test(key)) && typeof v === "string") out[key] = division;
+      if ((key === "tier" || /Tier$/.test(key) || key === "lastSeasonHighestRank") && (isTier(v) || v === null)) out[key] = rank.tier;
+      else if ((key === "division" || /Division$/.test(key)) && (typeof v === "string" || v === null)) out[key] = division;
+      // the border around the icon and the banner: the ranked ones (an unranked or
+      // level-crest profile has none to show otherwise)
+      else if (key === "crestType" || key === "preferredCrestType") out[key] = "ranked";
+      else if (key === "bannerType" || key === "preferredBannerType") out[key] = "lastSeasonHighestRank";
+      else if (/^highestRankedEntry/.test(key) && !v) out[key] = { queueType: SOLO_QUEUE, tier: rank.tier, division };
       else out[key] = rewrite(v, rank);
     }
     return out;
@@ -51,6 +67,7 @@
 
   function rewriteText(url, text) {
     const rank = rankFor(url);
+    note(url, Boolean(rank));
     if (!rank || typeof text !== "string" || !text) return text;
     try {
       return JSON.stringify(rewrite(JSON.parse(text), rank));
@@ -64,6 +81,7 @@
     const response = await nativeFetch(input, init);
     try {
       const url = typeof input === "string" ? input : input && input.url;
+      if (url && !rankFor(url)) note(url, false);
       if (!url || !response.ok || !rankFor(url)) return response;
       const text = await response.clone().text();
       return new Response(rewriteText(url, text), { status: response.status, statusText: response.statusText, headers: response.headers });
@@ -100,11 +118,12 @@
 
   // -- the client's live updates (OnJsonApiEvent over its websocket) ---------------
   function rewriteEvent(event) {
-    if (typeof event.data !== "string" || !ranks.size || !/lol-(regalia|ranked)/.test(event.data)) return event;
+    if (typeof event.data !== "string" || !/regalia|ranked|lol-lobby/.test(event.data)) return event;
     try {
       const message = JSON.parse(event.data);
       const update = message && message[2];
       const rank = update && typeof update.uri === "string" && rankFor(update.uri);
+      if (update && typeof update.uri === "string") note("ws " + update.uri, Boolean(rank));
       if (!rank || !update.data) return event;
       update.data = rewrite(update.data, rank);
       return new MessageEvent("message", { data: JSON.stringify(message), origin: event.origin });
@@ -179,6 +198,15 @@
     .then((bridge) => {
       bridge.subscribe("rank-display", (data) => applyRanks(data).catch((e) => console.warn(LOG_PREFIX, e)));
       bridge.onReady(() => bridge.send({ type: "rank-display-get" }));
+      // every minute (when something new was seen): the rank addresses, into Proteus's log
+      let reported = "";
+      setInterval(() => {
+        const report = [...seen.entries()].map(([url, [count, changed]]) => `${changed ? "CHANGED" : "seen"} x${count} ${url}`).sort();
+        const text = report.join("\n");
+        if (!report.length || text === reported) return;
+        reported = text;
+        bridge.send({ type: "rank-display-debug", ranks: [...ranks.keys()].length, lines: report.slice(0, 80) });
+      }, 60000);
     })
     .catch((e) => console.warn(`${LOG_PREFIX} ${e.message}`));
 })();

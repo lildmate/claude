@@ -148,7 +148,7 @@
       n.classList.toggle("active", active);
       if (active) n.setAttribute("aria-current", "page"); else n.removeAttribute("aria-current");
     });
-    const pages = { home: renderHome, skins: renderSkins, mods: renderMods, tier: renderTier, build: renderBuild, patch: renderPatch, profile: renderProfile, settings: renderSettings };
+    const pages = { home: renderHome, game: renderGame, skins: renderSkins, mods: renderMods, tier: renderTier, build: renderBuild, patch: renderPatch, profile: renderProfile, settings: renderSettings };
     const fn = pages[r.page] || renderHome;
     if (main.dataset.page !== location.hash) {
       // a slow page (tier list, builds) shows that it is loading instead of the previous one
@@ -495,10 +495,99 @@
         text: name, onclick: () => {
           rank = key;
           try { localStorage.setItem("proteus.rank", key); } catch (e) { /* no storage */ }
+          api("/api/settings", { buildRank: key }).catch(() => {});
           main.dataset.page = "";
           render();
         } })));
   }
+
+  // -- Game: the queue, champion select and the game you are in ------------------------
+  const GAME_PHASES = {
+    Offline: "A League kliens nem fut.", None: "Nem vagy játékban. Ha várólistára állsz, itt látod.",
+    Lobby: "A lobbyban vagy. Ha várólistára álltok, itt látod.", ReadyCheck: "Meccs található! Fogadd el.",
+    InProgress: "Játékban vagy.", GameStart: "Indul a játék…", Reconnect: "Újracsatlakozás a játékhoz…",
+    WaitingForStats: "A meccs véget ért.", PreEndOfGame: "A meccs véget ért.", EndOfGame: "A meccs véget ért.",
+  };
+  const gameCache = new Map(); // "/api/…" -> its answer (builds and counters change slowly)
+  async function cached(path) {
+    if (!gameCache.has(path)) gameCache.set(path, api(path).catch((e) => { gameCache.delete(path); throw e; }));
+    return gameCache.get(path);
+  }
+  const clock = (s) => Math.floor((s || 0) / 60) + ":" + String(Math.floor((s || 0) % 60)).padStart(2, "0");
+
+  function runePageCard(title, v, onApply) {
+    return h("div", { class: "card rune-page" },
+      h("div", { class: "section-head" }, h("h2", { text: title }), onApply ? h("button", { class: "btn primary", text: "Beállítás", onclick: onApply }) : null),
+      h("div", { class: "rune-cols" },
+        h("div", {}, iconRow([v.primaryStyle], "style"), iconRow(v.primary)),
+        h("div", {}, iconRow([v.subStyle], "style"), iconRow(v.secondary), iconRow(v.shards, "shard"))));
+  }
+
+  async function renderGame() {
+    const g = await api("/api/game");
+    const champ = (id) => (g.champions || {})[String(id)] || { id, name: "#" + id, icon: null };
+    if (g.phase === "Matchmaking") {
+      return page("Game", h("div", { class: "card game-phase" }, h("div", { class: "stat-label", text: "Várólistán" }),
+        h("div", { class: "stat-value gold", text: clock(g.timeInQueue) }),
+        h("div", { class: "stat-sub", text: g.estimatedQueueTime ? "Becsült várakozás: " + clock(g.estimatedQueueTime) : "" })));
+    }
+    if (g.phase !== "ChampSelect") {
+      return page("Game", h("div", { class: "card empty", text: GAME_PHASES[g.phase] || "Nem vagy játékban." }));
+    }
+    const status = h("div", { class: "muted small" });
+    const me = g.championId ? champ(g.championId) : null;
+    const opponent = g.opponentGuess ? champ(g.opponentGuess) : null;
+    const auto = g.autoRunes;
+    const head = h("div", { class: "card cs-card" },
+      picture(me && me.icon, "pn-icon big", ""),
+      h("div", { class: "cs-text" },
+        h("div", { class: "stat-label", text: me ? (g.locked ? "Lezárt championöd" : "Kiválasztott championöd") : "Még nem választottál" }),
+        h("div", { class: "stat-value", text: (me ? me.name : "–") + (g.position ? " · " + ({ Top: "Top", Jungle: "Jungle", Middle: "Mid", Bot: "ADC", Supporter: "Support" }[g.position] || g.position) : "") }),
+        h("div", { class: "stat-sub", text: auto ? (auto.ok ? "Rúnák és spellek automatikusan beállítva (" + auto.source + ")" : "Az automatikus rúnabeállítás nem sikerült: " + auto.error) : (g.locked ? "" : "Lezáráskor a rúnák és a spellek automatikusan bekerülnek.") })),
+      me ? h("a", { class: "btn", href: "#/build/" + me.id + (g.position ? "/" + g.position : "") + (opponent && g.position ? "/" + opponent.id : ""), text: "Teljes build" }) : null);
+    const enemies = h("div", { class: "card" }, h("div", { class: "section-head" }, h("h2", { text: "Ellenfelek" }),
+      h("span", { class: "muted small", text: opponent ? "A lane-ellenfeled valószínűleg " + opponent.name + "." : "" })),
+      (g.enemies || []).length
+        ? h("div", { class: "chips" }, g.enemies.map((id) => h("span", { class: "chip vs-chip" + (g.opponentGuess === id ? " on" : "") }, picture(champ(id).icon, "", ""), champ(id).name)))
+        : h("div", { class: "muted small", text: "Még nem látszik az ellenfél csapata." }));
+    const parts = [head, enemies];
+    if (opponent) {
+      try {
+        const c = await cached("/api/counters/" + opponent.id + "?pos=" + (g.position || "") + "&rank=" + rank);
+        if (c.available && c.counters.length) {
+          parts.push(h("div", { class: "card" },
+            h("div", { class: "section-head" }, h("h2", { text: opponent.name + " legnagyobb counterei (" + c.lane + ")" }),
+              h("span", { class: "muted small", text: opponent.name + ": " + c.tier + " tier, " + c.winRate + "% WR · op.gg KR " + (c.rank || "") })),
+            h("div", { class: "chips" }, c.counters.slice(0, 8).map((x) => h("a", { class: "chip chip-link vs-chip", href: "#/build/" + x.championId + "/" + c.position + "/" + opponent.id },
+              picture(x.icon, "", ""), x.name + (x.winRate !== undefined ? " · " + x.winRate + "%" : "") + (x.games ? " · " + x.games + " meccs" : ""))))));
+        }
+      } catch (e) { /* no counters */ }
+    }
+    if (me) {
+      try {
+        const data = await cached("/api/builds/" + me.id + "?rank=" + rank + (opponent ? "&vs=" + opponent.id : ""));
+        const lane = (data.lanes || []).find((l) => l.key === g.position) || (data.lanes || [])[0];
+        const build = lane && lane.builds[0];
+        if (build) {
+          const apply = (page) => async (e) => {
+            e.currentTarget.disabled = true;
+            try {
+              await api("/api/apply-build", { championId: me.id, lane: lane.key, index: 0, page, opponent: opponent ? opponent.id : null, rank });
+              status.textContent = "Beállítva.";
+            } catch (err) { status.textContent = "Nem sikerült beállítani."; }
+            e.currentTarget.disabled = false;
+          };
+          const pages = build.runePagesView && build.runePagesView.length ? build.runePagesView : [build.view];
+          parts.push(h("div", { class: "section-head" }, h("h2", { text: "A két legjobb rúna" + (opponent ? " " + opponent.name + " ellen" : "") }),
+            h("span", { class: "muted small", text: build.source + (build.games ? " · " + build.games + " meccs" : "") })));
+          pages.slice(0, 2).forEach((v, i) => parts.push(runePageCard((i + 1) + ". rúnaoldal" + (v.games ? " · " + v.games + " meccs" : "") + (v.pickRate ? " · " + Math.round(v.pickRate * 100) + "% pick" : ""), v, apply(i))));
+          parts.push(h("div", { class: "card" }, h("h2", { text: "Spellek, kezdés, tárgyak" }), iconRow(build.view.spells), iconRow(build.view.startItems), iconRow(build.view.items), status));
+        }
+      } catch (e) { /* no build */ }
+    }
+    return page("Game", ...parts);
+  }
+  setInterval(() => { if (route().page === "game" && !document.hidden) render(); }, 3000);
 
   async function renderTier() {
     const [data, cs] = await Promise.all([api("/api/tierlist?rank=" + rank), champSelectCard()]);
@@ -766,6 +855,16 @@
           toggle.setAttribute("aria-pressed", settings.windowOnStart ? "true" : "false");
         } catch (e) { toast("Nem sikerült menteni"); }
       } });
+    const autoToggle = h("button", { class: "toggle" + (settings.autoRunes ? " on" : ""), "aria-pressed": settings.autoRunes ? "true" : "false",
+      "aria-label": "Rúnák automatikus beállítása",
+      onclick: async () => {
+        try {
+          const next = await api("/api/settings", { autoRunes: !settings.autoRunes });
+          settings.autoRunes = next.autoRunes;
+          autoToggle.classList.toggle("on", settings.autoRunes);
+          autoToggle.setAttribute("aria-pressed", settings.autoRunes ? "true" : "false");
+        } catch (e) { toast("Nem sikerült menteni"); }
+      } });
     const folder = (which, label) => h("button", { class: "btn", text: label, onclick: async () => {
       try { await api("/api/open-folder", { folder: which }); } catch (e) { toast("Nem sikerült megnyitni"); }
     } });
@@ -775,6 +874,10 @@
           h("div", {}, h("div", { text: "Ablak megnyitása induláskor" }),
             h("div", { class: "muted small", text: "Kikapcsolva a Proteus csak a tálcán indul, az ablakot a tálcaikonnal nyithatod meg." })),
           toggle),
+        h("div", { class: "setting" },
+          h("div", {}, h("div", { text: "Rúnák automatikus beállítása" }),
+            h("div", { class: "muted small", text: "Amikor lezárod a championt, a build rúnái és spelljei maguktól bekerülnek (a lane-ellenfeled ellen, ha látszik)." })),
+          autoToggle),
         h("div", { class: "setting" },
           h("div", {}, h("div", { text: "Modok mappa" }), h("div", { class: "muted small", text: "Ide kerülnek a saját skinek, pályák, betűtípusok." })),
           folder("mods", "Megnyitás")),
