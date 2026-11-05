@@ -548,7 +548,7 @@
     const enemies = h("div", { class: "card" }, h("div", { class: "section-head" }, h("h2", { text: "Ellenfelek" }),
       h("span", { class: "muted small", text: opponent ? "A lane-ellenfeled valószínűleg " + opponent.name + "." : "" })),
       (g.enemies || []).length
-        ? h("div", { class: "chips" }, g.enemies.map((id) => h("span", { class: "chip vs-chip" + (g.opponentGuess === id ? " on" : "") }, picture(champ(id).icon, "", ""), champ(id).name)))
+        ? h("div", { class: "chips" }, g.enemies.map((id) => h("span", { class: "chip chip-link vs-chip" + (g.opponentGuess === id ? " on" : "") }, picture(champ(id).icon, "", ""), champ(id).name)))
         : h("div", { class: "muted small", text: "Még nem látszik az ellenfél csapata." }));
     const parts = [head, enemies];
     if (opponent) {
