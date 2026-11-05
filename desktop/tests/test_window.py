@@ -43,7 +43,8 @@ class FakeLCU:
     def get(self, path, timeout=None):
         if path.endswith("champion-summary.json"):
             return [{"id": -1, "name": "None"}, {"id": 103, "name": "Ahri", "alias": "Ahri"},
-                    {"id": 1, "name": "Annie", "alias": "Annie"}]
+                    {"id": 1, "name": "Annie", "alias": "Annie"},
+                    {"id": 66103, "name": "Ahri", "alias": "Ahri"}]  # a game mode's copy
         if path.endswith("/champions/103.json"):
             return CHAMPION
         if path.startswith("/lol-ranked"):

@@ -24,6 +24,7 @@ log = get_logger()
 GAME_DATA_PREFIX = "/lol-game-data/assets/"
 CDRAGON_BASE = "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/"
 JSON_TTL_S = 6 * 60 * 60
+MAX_CHAMPION_ID = 10000
 IMAGE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
 
 RARITIES = {
@@ -173,13 +174,19 @@ class GameData:
         """Every champion, sorted by name."""
         data = self._get_json(GAME_DATA_PREFIX + "v1/champion-summary.json") or []
         result = []
+        seen = set()
         for champ in data:
             try:
                 champ_id = int(champ.get("id", -1))
             except (TypeError, ValueError):
                 continue
-            if champ_id <= 0:
+            # Special game modes add their own copies with large ids (Doom Bots...)
+            if champ_id <= 0 or champ_id >= MAX_CHAMPION_ID:
                 continue
+            key = (champ.get("alias") or champ.get("name") or "").casefold()
+            if key in seen:
+                continue
+            seen.add(key)
             result.append({
                 "id": champ_id,
                 "name": champ.get("name") or champ.get("alias") or str(champ_id),
