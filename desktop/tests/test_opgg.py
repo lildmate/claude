@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from desktop.opgg import champion_keys, flight, parse_rows, parse_runes, parse_tier_list
+from desktop.opgg import OpGG, champion_keys, flight, parse_rows, parse_runes, parse_tier_list, wider_ranks
 
 
 def page(*chunks):
@@ -54,6 +54,45 @@ class OpGGTests(unittest.TestCase):
         rows = parse_rows(flight(page(ROWS)))
         self.assertEqual(rows["core_items"][0], {"ids": [3142, 3742], "skills": [], "games": 61, "winRate": 63.93})
         self.assertEqual(rows["starter_items"][0]["games"], 1422)
+
+
+class Response:
+    def __init__(self, text):
+        self.status_code, self.text = 200, text
+
+
+def fake_site(games_by_rank):
+    """op.gg with the Darius build played games_by_rank[rank] times in each rank."""
+    seen = []
+
+    def get(url):
+        seen.append(url)
+        if "/build/" in url:
+            rank = url.split("tier=")[1].split("&")[0]
+            return Response(page(RUNES.replace('"play":229', '"play":%d' % games_by_rank.get(rank, 0))))
+        return Response(page(TIER))
+    return get, seen
+
+
+class RankTests(unittest.TestCase):
+    def test_wider_ranks(self):
+        self.assertEqual(wider_ranks("master_plus"), ["master_plus", "diamond_plus", "emerald_plus"])
+        self.assertEqual(wider_ranks("nonsense")[0], "challenger")
+
+    def test_challenger_build_when_it_has_games(self):
+        get, seen = fake_site({"challenger": 40, "grandmaster_plus": 90})
+        build = OpGG(get).build(122, "Top", 86, "challenger")
+        self.assertEqual((build["rank"], build["games"]), ("Challenger", 40))
+        self.assertIn("region=kr&tier=challenger&target_champion=garen", seen[-1])
+
+    def test_falls_back_to_a_wider_rank(self):
+        get, _ = fake_site({"challenger": 3, "grandmaster_plus": 8, "master_plus": 55})
+        build = OpGG(get).build(122, "Top", None, "challenger")
+        self.assertEqual((build["rankKey"], build["games"]), ("master_plus", 55))
+
+    def test_most_games_when_no_rank_has_enough(self):
+        get, _ = fake_site({"challenger": 2, "master_plus": 9, "emerald_plus": 4})
+        self.assertEqual(OpGG(get).build(122, "Top", None, "challenger")["rankKey"], "master_plus")
 
 
 if __name__ == "__main__":

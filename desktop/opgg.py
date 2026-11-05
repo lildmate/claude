@@ -32,6 +32,29 @@ CACHE_TTL_S = 30 * 60
 POSITIONS = [("Top", "Top", "top", "TOP"), ("Jungle", "Jungle", "jungle", "JUNGLE"),
              ("Middle", "Mid", "mid", "MID"), ("Bot", "ADC", "adc", "ADC"), ("Supporter", "Support", "support", "SUPPORT")]
 TIER_LETTERS = {0: "OP", 1: "S", 2: "A", 3: "B", 4: "C", 5: "D"}
+REGION = "kr"
+# Rank filters, highest first: (op.gg's key, the name shown)
+RANKS = [("challenger", "Challenger"), ("grandmaster_plus", "Grandmaster+"), ("master_plus", "Master+"),
+         ("diamond_plus", "Diamond+"), ("emerald_plus", "Emerald+")]
+RANK_NAMES = dict(RANKS)
+DEFAULT_RANK = "challenger"
+# Fewer games than this in a rank: the next, wider one is used
+MIN_BUILD_GAMES = 20
+MIN_TIER_CHAMPIONS = 5
+
+
+def rank_key(rank: Optional[str]) -> str:
+    return rank if rank in RANK_NAMES else DEFAULT_RANK
+
+
+def wider_ranks(rank: Optional[str]) -> List[str]:
+    """The rank and the wider ones after it, to fall back on when it has too few games."""
+    keys = [k for k, _ in RANKS]
+    return keys[keys.index(rank_key(rank)):]
+
+
+def filters(rank: str) -> str:
+    return f"region={REGION}&tier={rank_key(rank)}"
 FLIGHT = re.compile(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)')
 ROW = re.compile(r'\["\$","tr","([a-z_]+?)_(\d+)",')
 META = re.compile(r'"metaType":"(item|spell|skill|rune|perk)","metaId":(\d+)')
@@ -166,17 +189,32 @@ class OpGG:
     def keys(self) -> Dict[str, int]:
         return champion_keys(self._flight("/lol/champions?position=top"))
 
-    def tier_list(self) -> dict:
+    def _tier_list_at(self, rank: str) -> Tuple[str, List[dict]]:
         from concurrent.futures import ThreadPoolExecutor
 
         with ThreadPoolExecutor(max_workers=len(POSITIONS)) as pool:  # five pages at once
-            pages = list(pool.map(lambda p: self._flight(f"/lol/champions?position={p[2]}"), POSITIONS))
-        keys = champion_keys(pages[0])
-        version = self.version(pages[0])
+            pages = list(pool.map(lambda p: self._flight(f"/lol/champions?position={p[2]}&{filters(rank)}"), POSITIONS))
+        keys = champion_keys(pages[0]) or self.keys()
         positions = [{"key": key, "name": name, "champions": parse_tier_list(data, keys)}
                      for (key, name, _, _), data in zip(POSITIONS, pages)]
-        return {"source": "op.gg", "version": version, "currentVersion": version, "region": "global",
-                "rank": "Emerald+", "positions": positions}
+        return self.version(pages[0]), positions
+
+    def tier_list(self, rank: Optional[str] = None) -> dict:
+        """The tier list of a rank (KR); a wider rank when it has too few champions ranked."""
+        wanted = rank_key(rank)
+        version, positions, used = "", [], wanted
+        for used in wider_ranks(wanted):
+            try:
+                version, positions = self._tier_list_at(used)
+            except Exception as e:
+                log.info("[Window] op.gg tier list %s failed: %s", used, e)
+                continue
+            if all(len(p["champions"]) >= MIN_TIER_CHAMPIONS for p in positions):
+                break
+        if not positions:
+            raise RuntimeError("op.gg has no tier list")
+        return {"source": "op.gg", "version": version, "currentVersion": version, "region": REGION.upper(),
+                "rank": RANK_NAMES[used], "rankKey": used, "wantedRank": RANK_NAMES[wanted], "positions": positions}
 
     def champion_positions(self) -> Dict[int, List[str]]:
         """champion id -> its positions, most played first (Proteus keys)."""
@@ -188,16 +226,35 @@ class OpGG:
                 result[int(obj["id"])] = [by_opgg[p] for p in obj.get("positions") or [] if p in by_opgg]
         return result
 
-    def build(self, champion_id: int, position: str, opponent_id: Optional[int] = None) -> Optional[dict]:
+    def build(self, champion_id: int, position: str, opponent_id: Optional[int] = None,
+              rank: Optional[str] = None) -> Optional[dict]:
+        """The build of a rank (KR); a wider rank's when it has fewer than MIN_BUILD_GAMES games."""
+        fallback = None
+        for used in wider_ranks(rank):
+            try:
+                build = self._build_at(champion_id, position, opponent_id, used)
+            except Exception as e:
+                log.info("[Window] op.gg build %s failed: %s", used, e)
+                continue
+            if not build:
+                continue
+            build["rank"], build["rankKey"] = RANK_NAMES[used], used
+            if build["games"] >= MIN_BUILD_GAMES:
+                return build
+            if fallback is None or build["games"] > fallback["games"]:
+                fallback = build
+        return fallback
+
+    def _build_at(self, champion_id: int, position: str, opponent_id: Optional[int], rank: str) -> Optional[dict]:
         keys = self.keys()
         by_id = {v: k for k, v in keys.items()}
         champ_key = by_id.get(int(champion_id))
         opgg_position = next((p[2] for p in POSITIONS if p[0] == position), None)
         if not champ_key or not opgg_position:
             return None
-        path = f"/lol/champions/{champ_key}/build/{opgg_position}"
+        path = f"/lol/champions/{champ_key}/build/{opgg_position}?{filters(rank)}"
         if opponent_id and by_id.get(int(opponent_id)):
-            path += f"?target_champion={by_id[int(opponent_id)]}"
+            path += f"&target_champion={by_id[int(opponent_id)]}"
         data = self._flight(path)
         runes = parse_runes(data)
         if not runes:

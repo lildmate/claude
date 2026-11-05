@@ -105,12 +105,12 @@ class AppAPI:
     def _champion_index(self) -> dict:
         return {c["id"]: c for c in self.game.champions()}
 
-    def tier_list(self) -> dict:
+    def tier_list(self, rank: Optional[str] = None) -> dict:
         """op.gg's tier list (the live patch), with deeplol.gg's win rate next to it."""
         data = None
         if self.opgg:
             try:
-                data = self.opgg.tier_list()
+                data = self.opgg.tier_list(rank)
             except Exception as e:
                 log.warning("[Window] op.gg tier list failed: %s", e)
         deeplol = None
@@ -137,7 +137,8 @@ class AppAPI:
                 entry["otherWinRate"] = other.get((position["key"], entry["championId"]))
         return dict(data, available=True, otherSource=(f"deeplol.gg {deeplol['version']}" if deeplol else None))
 
-    def _lane_builds(self, champion_id: int, opponent_id: Optional[int] = None) -> Tuple[List[dict], str, str]:
+    def _lane_builds(self, champion_id: int, opponent_id: Optional[int] = None,
+                     rank: Optional[str] = None) -> Tuple[List[dict], str, str]:
         """Per lane: op.gg's build (against the opponent when given), then deeplol.gg's."""
         deeplol = {"lanes": [], "version": ""}
         if self.meta:
@@ -159,7 +160,7 @@ class AppAPI:
             dl = next((l["builds"] for l in deeplol["lanes"] if l["key"] == key), [])  # noqa: E741
             if self.opgg and key in positions:
                 try:
-                    op = self.opgg.build(champion_id, key, opponent_id)
+                    op = self.opgg.build(champion_id, key, opponent_id, rank)
                 except Exception as e:
                     log.warning("[Window] op.gg build failed: %s", e)
                     op = None
@@ -167,18 +168,18 @@ class AppAPI:
                     version = version or op.get("version") or ""
                     if dl:  # spells and skills only come from deeplol.gg
                         op["spells"], op["skills"], op["skillOrder"] = dl[0]["spells"], dl[0]["skills"], dl[0]["skillOrder"]
-                    op["source"] = "op.gg" + (" · ellenfél ellen" if opponent_id else "")
+                    op["source"] = "op.gg KR " + op.get("rank", "") + (" · ellenfél ellen" if opponent_id else "")
                     builds.append(op)
             for b in dl:
-                builds.append(dict(b, source="deeplol.gg " + deeplol["version"]))
+                builds.append(dict(b, source="deeplol.gg KR Emerald+ " + deeplol["version"]))
             if builds:
                 lanes.append({"key": key, "name": lane_names.get(key, key), "builds": builds})
         return lanes, version or deeplol.get("version", ""), deeplol.get("currentVersion") or version
 
-    def builds(self, champion_id: int, opponent_id: Optional[int] = None) -> dict:
+    def builds(self, champion_id: int, opponent_id: Optional[int] = None, rank: Optional[str] = None) -> dict:
         if not self.meta and not self.opgg:
             return {"available": False}
-        lanes, version, current = self._lane_builds(champion_id, opponent_id)
+        lanes, version, current = self._lane_builds(champion_id, opponent_id, rank)
         perks, styles = self.game.lookup("perks"), self.game.lookup("styles")
         items, spells = self.game.lookup("items"), self.game.lookup("spells")
         named = lambda table, ids: [dict(table.get(int(i), {"name": str(i), "icon": None}), id=int(i)) for i in ids]  # noqa: E731
@@ -225,7 +226,7 @@ class AppAPI:
             raise ValueError("nincs build")
         champion_id, lane, index = int(body["championId"]), str(body["lane"]), int(body.get("index") or 0)
         opponent_id = int(body["opponent"]) if body.get("opponent") else None
-        lanes, _, _ = self._lane_builds(champion_id, opponent_id)
+        lanes, _, _ = self._lane_builds(champion_id, opponent_id, body.get("rank") or None)
         lane_data = next((l for l in lanes if l["key"] == lane), None)  # noqa: E741
         if not lane_data or index >= len(lane_data["builds"]):
             raise ValueError("nincs ilyen build")
@@ -466,14 +467,14 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._json(400, {"error": "bad id"})
             return self._json(200, api.mod_list(champion_id))
         if path == "/api/tierlist":
-            return self._json(200, api.tier_list())
+            return self._json(200, api.tier_list((query.get("rank") or [None])[0]))
         if path.startswith("/api/builds/"):
             try:
                 champion_id = int(path.rsplit("/", 1)[1])
                 opponent = int((query.get("vs") or ["0"])[0]) or None
             except ValueError:
                 return self._json(400, {"error": "bad id"})
-            return self._json(200, api.builds(champion_id, opponent))
+            return self._json(200, api.builds(champion_id, opponent, (query.get("rank") or [None])[0]))
         if path == "/api/champ-select":
             return self._json(200, api.champ_select_state())
         if path == "/api/patch-notes":

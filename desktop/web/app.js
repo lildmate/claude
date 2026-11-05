@@ -480,8 +480,28 @@
         text: "Build megnyitása" }));
   }
 
+  // -- rank filter (op.gg, KR): remembered in this window ------------------------------
+  const RANKS = [["challenger", "Challenger"], ["grandmaster_plus", "Grandmaster+"], ["master_plus", "Master+"],
+    ["diamond_plus", "Diamond+"], ["emerald_plus", "Emerald+"]];
+  let rank = "challenger";
+  try { rank = localStorage.getItem("proteus.rank") || rank; } catch (e) { /* no storage */ }
+  if (!RANKS.some(([k]) => k === rank)) rank = "challenger";
+  const rankName = (key) => (RANKS.find(([k]) => k === key) || [key, key])[1];
+
+  function rankPicker() {
+    return h("div", { class: "chips", role: "group", "aria-label": "Rang" },
+      h("span", { class: "muted small", text: "Rang (KR):" }),
+      RANKS.map(([key, name]) => h("button", { class: "chip" + (key === rank ? " on" : ""), "aria-pressed": key === rank ? "true" : "false",
+        text: name, onclick: () => {
+          rank = key;
+          try { localStorage.setItem("proteus.rank", key); } catch (e) { /* no storage */ }
+          main.dataset.page = "";
+          render();
+        } })));
+  }
+
   async function renderTier() {
-    const [data, cs] = await Promise.all([api("/api/tierlist"), champSelectCard()]);
+    const [data, cs] = await Promise.all([api("/api/tierlist?rank=" + rank), champSelectCard()]);
     if (!data.available) return page("Tier list", h("div", { class: "card empty", text: "Most nem sikerült betölteni a tier listet." }));
     const position = data.positions.find((p) => p.key === tierPosition) || data.positions[0];
     const tabs = h("div", { class: "chips", role: "group", "aria-label": "Pozíció" }, data.positions.map((p) =>
@@ -501,10 +521,13 @@
     const old = data.version !== data.currentVersion
       ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " adatai látszanak." })
       : null;
-    return page("Tier list", cs, old,
+    const fallback = data.rankKey && data.rankKey !== rank
+      ? h("div", { class: "banner", text: rankName(rank) + ": kevés adat ezen a patchen → " + data.rank + " látszik." })
+      : null;
+    return page("Tier list", cs, old, h("div", { class: "card" }, rankPicker()), fallback,
       h("div", { class: "card" },
         h("div", { class: "section-head" }, tabs,
-          h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version + (data.otherSource ? " · összevetve: " + data.otherSource : "") })),
+          h("span", { class: "muted small", text: "Forrás: " + data.source + " KR " + (data.rank || "") + " · patch " + data.version + (data.otherSource ? " · összevetve: " + data.otherSource : "") })),
         table));
   }
 
@@ -514,7 +537,7 @@
   }
 
   async function renderBuild(r) {
-    const [data, cs] = await Promise.all([api("/api/builds/" + r.id + (r.vs ? "?vs=" + r.vs : "")),
+    const [data, cs] = await Promise.all([api("/api/builds/" + r.id + "?rank=" + rank + (r.vs ? "&vs=" + r.vs : "")),
       api("/api/champ-select").catch(() => ({ inChampSelect: false }))]);
     if (!championsCache) championsCache = (await api("/api/champions")).champions;
     if (!data.available || !data.lanes.length) {
@@ -543,10 +566,14 @@
       const b = lane.builds[index];
       const v = b.view;
       const status = h("div", { class: "muted small" });
+      const fallback = b.rankKey && b.rankKey !== rank
+        ? h("div", { class: "banner", text: rankName(rank) + ": kevés meccs" + (r.vs ? " ebben a matchupban" : "") + " → " + b.rank + " buildje látszik." })
+        : null;
       box.replaceChildren(h("div", { class: "card build-card" },
         h("div", { class: "chips" }, lane.builds.map((bb, i) => h("button", {
           class: "chip" + (i === index ? " on" : ""), text: (i + 1) + ". " + bb.source + (bb.games ? " · " + bb.games.toLocaleString("hu-HU") + " meccs" : ""),
           onclick: () => { index = i; draw(); } }))),
+        fallback,
         h("h2", { text: "Rúnák" }),
         h("div", { class: "rune-cols" },
           h("div", {}, iconRow([v.primaryStyle], "style"), iconRow(v.primary)),
@@ -561,7 +588,7 @@
           h("button", { class: "btn primary", text: "Rúnák és spellek beállítása", onclick: async (e) => {
             e.currentTarget.disabled = true;
             try {
-              await api("/api/apply-build", { championId: data.championId, lane: lane.key, index, opponent: r.vs || null });
+              await api("/api/apply-build", { championId: data.championId, lane: lane.key, index, opponent: r.vs || null, rank });
               status.textContent = "Beállítva: a rúnaoldal „Proteus” néven került be.";
             } catch (err) { status.textContent = "Nem sikerült: indítsd el a League klienst, és légy champion selectben."; }
             e.currentTarget.disabled = false;
@@ -576,7 +603,7 @@
       ? h("div", { class: "banner", text: "A " + data.currentVersion + " patchhez még kevés az adat, ezért a " + data.version + " buildje látszik." })
       : null;
     const title = (data.championName || "Build") + (data.opponent ? " vs " + data.opponent.name : "") + " build";
-    return page(title, oldBuild, matchup,
+    return page(title, oldBuild, h("div", { class: "card" }, rankPicker()), matchup,
       h("div", { class: "card build-head" }, picture(data.championIcon, "pn-icon big", ""), laneTabs,
         h("span", { class: "muted small", text: "Forrás: " + data.source + " · patch " + data.version })),
       box);
