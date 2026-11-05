@@ -29,19 +29,13 @@ def show(data, needle, width=1600, count=2):
         n += 1
 
 
-for url in ["https://op.gg/lol/champions/darius/build/top?target_champion=garen",
-            "https://op.gg/lol/champions?position=top"]:
-    print("=" * 100)
-    r = requests.get(url, headers=UA, timeout=30)
-    data = flight(r.text)
-    print(url, r.status_code, "flight chars", len(data))
-    i = data.find('"rune_pages"')
-    j = data.find('"sub_runes"', i)
-    print("rune page tail:", data[j - 100: j + 1500] if j > 0 else "no sub_runes")
-    for needle in ('"core_items"', '"starter_items"', '"boots"', '"summoner_spells"', '"skill_masteries"',
-                   '"skills"', '"stat_mods"', '"positions"', '"champion_id":', '"average_stats"', '"tier":'):
-        if needle in data:
-            show(data, needle, width=1200, count=1)
-        else:
-            print("absent:", needle)
+url = "https://op.gg/lol/champions/darius/build/top?target_champion=garen"
+r = requests.get(url, headers=UA, timeout=30)
+data = flight(r.text)
+print(url, r.status_code, len(data))
+for needle in ('6631', '"ids"', '"skill', '"spell', 'SummonerFlash', '"item_', '"starter', '"core', '"last_items"', '"boots'):
+    found = [m.start() for m in re.finditer(re.escape(needle), data)]
+    print(needle, "hits", len(found), found[:8])
+for needle in ('6631', '"ids"', '"skill'):
+    show(data, needle, width=900, count=2)
 sys.exit(0)
