@@ -1,41 +1,27 @@
 #!/usr/bin/env python3
-"""Temporary: the data op.gg embeds in its build and tier list pages (run on CI)."""
+"""Temporary: runs desktop.opgg on the live op.gg (run on CI)."""
 
 import json
-import re
 import sys
+from pathlib import Path
 
-import requests
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36",
-      "Accept-Language": "en-US,en;q=0.9"}
+from desktop.opgg import OpGG, parse_rows  # noqa: E402
 
-
-def flight(html):
-    """The concatenated Next.js flight data of a page."""
-    parts = re.findall(r'self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)', html)
-    return "".join(json.loads('"' + p + '"') for p in parts)
-
-
-def show(data, needle, width=1600, count=2):
-    i, n = 0, 0
-    while n < count:
-        i = data.find(needle, i)
-        if i < 0:
-            break
-        print(f"--- {needle!r} @ {i} ---")
-        print(data[max(0, i - 500): i + width])
-        i += len(needle)
-        n += 1
-
-
-url = "https://op.gg/lol/champions/darius/build/top?target_champion=garen"
-r = requests.get(url, headers=UA, timeout=30)
-data = flight(r.text)
-print(url, r.status_code, len(data))
-for needle in ('6631', '"ids"', '"skill', '"spell', 'SummonerFlash', '"item_', '"starter', '"core', '"last_items"', '"boots'):
-    found = [m.start() for m in re.finditer(re.escape(needle), data)]
-    print(needle, "hits", len(found), found[:8])
-for needle in ('6631', '"ids"', '"skill'):
-    show(data, needle, width=900, count=2)
-sys.exit(0)
+op = OpGG()
+tiers = op.tier_list()
+print("tier list version", tiers["version"])
+for p in tiers["positions"]:
+    print(p["name"], len(p["champions"]), json.dumps(p["champions"][:3]))
+keys = op.keys()
+print("keys", len(keys), "darius", keys.get("darius"), "garen", keys.get("garen"))
+pos = op.champion_positions()
+print("positions darius", pos.get(122), "garen", pos.get(86), "sejuani", pos.get(113))
+data = op._flight("/lol/champions/darius/build/top?target_champion=garen")
+rows = parse_rows(data)
+for group, entries in rows.items():
+    print("ROWS", group, len(entries), json.dumps(entries[:2]))
+print("BUILD vs garen", json.dumps(op.build(122, "Top", 86)))
+print("BUILD general", json.dumps(op.build(122, "Top")))
+print("BUILD ahri mid", json.dumps(op.build(103, "Middle")))
