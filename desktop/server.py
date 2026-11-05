@@ -45,7 +45,8 @@ class AppAPI:
 
     def __init__(self, game: GameData, client: ClientData, favorites: Favorites, next_skins: NextSkins,
                  version: str = "", open_folder: Optional[Callable[[str], bool]] = None,
-                 settings: Optional[dict] = None):
+                 settings: Optional[dict] = None, patch_notes=None):
+        self.patch_notes = patch_notes
         self.game = game
         self.client = client
         self.favorites = favorites
@@ -80,6 +81,18 @@ class AppAPI:
                 skins.append(skin)
         skins.sort(key=lambda s: (s["championName"].casefold(), s["name"].casefold()))
         return {"skins": skins}
+
+    def latest_patch_notes(self) -> dict:
+        notes = self.patch_notes.latest() if self.patch_notes else None
+        if not notes:
+            return {"available": False}
+        icons = {}
+        for champ in self.game.champions():
+            icons[champ["name"].casefold()] = champ["icon"]
+            if champ.get("alias"):
+                icons.setdefault(champ["alias"].casefold(), champ["icon"])
+        champions = [dict(c, icon=icons.get(c["name"].casefold())) for c in notes["champions"]]
+        return dict(notes, champions=champions, available=True)
 
     def profile(self) -> dict:
         if not self.client.connected():
@@ -238,6 +251,8 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, api.favorite_skins())
         if path == "/api/profile":
             return self._json(200, api.profile())
+        if path == "/api/patch-notes":
+            return self._json(200, api.latest_patch_notes())
         if path == "/api/settings":
             return self._json(200, api.get_settings())
         return self._json(404, {"error": "not found"})

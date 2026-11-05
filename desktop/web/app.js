@@ -148,7 +148,7 @@
       n.classList.toggle("active", active);
       if (active) n.setAttribute("aria-current", "page"); else n.removeAttribute("aria-current");
     });
-    const pages = { home: renderHome, skins: renderSkins, profile: renderProfile, settings: renderSettings };
+    const pages = { home: renderHome, skins: renderSkins, patch: renderPatch, profile: renderProfile, settings: renderSettings };
     const fn = pages[r.page] || renderHome;
     let content;
     try {
@@ -310,6 +310,82 @@
       if (on) on.scrollIntoView({ block: "nearest" });
     }, 0);
     return page("Skinek", layout);
+  }
+
+  // -- patch notes -------------------------------------------------------------------
+  const VERDICT = { buff: ["Erősítés", "buff"], nerf: ["Gyengítés", "nerf"], adjust: ["Módosítás", "adjust"] };
+
+  function changeText(c) {
+    let text = (c.label ? c.label + ": " : "") + c.old + " → " + c.new;
+    if (c.percent !== null && c.percent !== undefined && c.percent !== 0) text += " (" + (c.percent > 0 ? "+" : "") + c.percent + "%)";
+    return text;
+  }
+
+  function summaryTable(title, hint, entries, withIcon) {
+    return h("div", { class: "card" },
+      h("div", { class: "section-head" }, h("h2", { text: title }), h("span", { class: "muted small", text: hint })),
+      entries.length
+        ? h("ul", { class: "pn-summary" }, entries.map((e) => h("li", {},
+            h("a", { href: "#pn-" + e.anchor, class: "pn-link" },
+              withIcon ? picture(e.icon, "pn-icon", "") : null,
+              h("span", { text: e.name })),
+            h("span", { class: "muted small", text: e.better + " jobb · " + e.worse + " rosszabb" }))))
+        : h("div", { class: "muted", text: "Ebben a patchben nincs ilyen." }));
+  }
+
+  function entryCard(e, withIcon) {
+    const [label, cls] = VERDICT[e.verdict] || VERDICT.adjust;
+    let lastDetail = null;
+    const lines = [];
+    e.changes.forEach((c) => {
+      if (c.detail && c.detail !== lastDetail) {
+        lines.push(h("div", { class: "pn-detail", text: c.detail }));
+        lastDetail = c.detail;
+      }
+      lines.push(h("div", { class: "pn-change" },
+        h("span", { class: "tag " + (c.effect === "better" ? "buff" : c.effect === "worse" ? "nerf" : ""),
+          text: c.effect === "better" ? "jobb" : c.effect === "worse" ? "rosszabb" : "változott" }),
+        h("span", { text: changeText(c) })));
+    });
+    return h("div", { class: "card pn-entry", id: "pn-" + e.anchor },
+      h("div", { class: "pn-head" },
+        withIcon ? picture(e.icon, "pn-icon big", "") : null,
+        h("h2", { text: e.name }),
+        h("span", { class: "tag " + cls, text: label })),
+      e.context ? h("p", { class: "pn-context", text: e.context }) : null,
+      lines);
+  }
+
+  async function renderPatch() {
+    const notes = await api("/api/patch-notes");
+    if (!notes.available) {
+      return page("Patch notes", h("div", { class: "card empty", text: "Most nem sikerült betölteni a patch notes-t. Ellenőrizd az internetkapcsolatot, és próbáld újra." }));
+    }
+    let n = 0;
+    notes.champions.forEach((e) => { e.anchor = "c" + (n++); });
+    notes.items.forEach((e) => { e.anchor = "i" + (n++); });
+    const by = (list, v) => list.filter((e) => e.verdict === v);
+    const head = h("div", { class: "card" },
+      h("div", { class: "muted small", text: "A hivatalos patch notes alapján. Az „Erősítés” és a „Gyengítés” a számokból és a fejlesztők indoklásából jön." }),
+      h("a", { href: notes.url, target: "_blank", rel: "noopener", class: "small", text: "Hivatalos oldal megnyitása" }));
+    const content = h("div", { class: "pn-anchor-root" },
+      h("div", { class: "pn-grid" },
+        summaryTable("Erősített championök", "ezeket érdemes most játszani", by(notes.champions, "buff"), true),
+        summaryTable("Gyengített championök", "ezek rosszabbak lettek", by(notes.champions, "nerf"), true),
+        summaryTable("Erősített tárgyak", "ezeket érdemes most venni", by(notes.items, "buff"), false),
+        summaryTable("Gyengített tárgyak", "ezek rosszabbak lettek", by(notes.items, "nerf"), false)),
+      h("h2", { class: "pn-section", text: "Championök részletesen" }),
+      notes.champions.map((e) => entryCard(e, true)),
+      h("h2", { class: "pn-section", text: "Tárgyak részletesen" }),
+      notes.items.map((e) => entryCard(e, false)));
+    content.addEventListener("click", (ev) => {
+      const link = ev.target.closest("a.pn-link");
+      if (!link) return;
+      ev.preventDefault();
+      const target = document.getElementById(link.getAttribute("href").slice(1));
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return page("Patch " + notes.patch, head, content);
   }
 
   // -- profile -----------------------------------------------------------------------

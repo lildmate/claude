@@ -5,7 +5,7 @@ on:
   push:
     branches: ["claude/**"]
     paths:
-      - scripts/probe_patch_notes.py
+      - desktop/patchnotes.py
       - .github/workflows/probe-patch-notes.yml
 
 permissions:
@@ -19,5 +19,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Probe
-        run: python3 scripts/probe_patch_notes.py
+      - name: Parse the live patch notes
+        run: |
+          python3 -m pip install --quiet requests
+          python3 -c "
+          import json, sys
+          sys.path.insert(0, '.')
+          from desktop.patchnotes import PatchNotes
+          d = PatchNotes().latest()
+          print('patch', d['patch'], d['locale'], len(d['champions']), 'champions', len(d['items']), 'items')
+          for sec in ('champions', 'items'):
+              for e in d[sec]:
+                  print(sec[0], e['verdict'], e['better'], e['worse'], e['name'], '|', e['context'][:90])
+                  for c in e['changes'][:4]:
+                      print('     ', c['effect'], c['percent'], '|', c['detail'][:30], '|', c['label'][:30], ':', c['old'][:40], '=>', c['new'][:40])
+          "

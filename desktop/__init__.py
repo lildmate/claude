@@ -66,6 +66,7 @@ def start(lcu, version: str) -> Optional[Window]:
         from utils.core.paths import get_asset_path, get_user_data_dir
 
         from .data import ClientData, GameData
+        from .patchnotes import PatchNotes
         from .server import AppAPI, AppServer
         from .store import Favorites, NextSkins
 
@@ -79,6 +80,7 @@ def start(lcu, version: str) -> Optional[Window]:
             version=version,
             open_folder=_open_folder,
             settings=_settings(),
+            patch_notes=PatchNotes(),
         )
         server = AppServer(api)
         server.start()
