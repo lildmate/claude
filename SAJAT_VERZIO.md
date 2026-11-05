@@ -48,24 +48,25 @@ a CI pedig szól, ha elfelejtetted.)
     nem fut egyszerre (ugyanazt az adatmappát használnák).
   Ha az eredeti Rose fel van telepítve, előbb azt távolítsd el.
 
-## Új verzió kiadása (te frissítesz)
+## Új verzió kiadása (automatikus)
 
-A telepített app induláskor megnézi a `lildmate/claude` repó **legutolsó
+A telepített Proteus induláskor megnézi a `lildmate/claude` repó **legutolsó
 release**-ét, és ha újabb, felajánlja a frissítést.
+
+A buildelést a GitHub csinálja (`.github/workflows/release.yml`), Windows
+gépen, neked nem kell semmit telepítened. Új verzió:
 
 1. Írd át a verziószámot **mindkét** helyen ugyanarra, pl. `1.5.3`:
    - `config.py` → `APP_VERSION = "1.5.3"`
-   - `installer.iss` → `#define MyAppVersion "1.5.3"` (és `MyAppVersionInfo "1.5.3.0"`)
-2. Windowson buildeld (előfeltételek a `README.md` „Building from source”
-   részében):
-   ```powershell
-   python scripts/build_all.py
-   python scripts/create_update_package.py
-   ```
-3. GitHubon csinálj egy release-t, aminek a **tag neve pontosan a
-   verziószám** (`1.5.3`, `v` nélkül), és töltsd fel hozzá:
-   - `installer/update_package_1.5.3.zip` – ezt tölti le az auto-updater
-   - `installer/Proteus_Setup_1.5.3.exe` – új telepítéshez
+   - `installer.iss` → `#define MyAppVersion "1.5.3"` és `MyAppVersionInfo "1.5.3.0"`
+2. Pushold fel (vagy szólj Claude-nak, hogy csinálja meg).
+3. Kb. 10-20 perc múlva a repó **Releases** oldalán megjelenik:
+   - `Proteus_Setup_1.5.3.exe` – új telepítéshez
+   - `update_package_1.5.3.zip` – ezt tölti le a már telepített Proteus
+
+A build állapota a repó **Actions** fülén látszik (Release). Kézzel is
+indítható: Actions → Release → Run workflow. Ha a verziószám nem változott,
+csak buildel, nem ad ki új release-t.
 
 Az eredeti Rose frissítései innentől **nem jönnek automatikusan**. Ha
 szeretnél átvenni valamit tőlük, azt kézzel kell behúzni az upstream

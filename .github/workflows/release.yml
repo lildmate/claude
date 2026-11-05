@@ -1,0 +1,127 @@
+name: Release
+
+# Builds Proteus on a Windows runner and publishes a GitHub release.
+#
+# How to release: change APP_VERSION in config.py and MyAppVersion in
+# installer.iss to the new version, then push. When the push lands on the
+# default branch and no release exists for that version yet, this workflow
+# builds the installer and the update package and publishes them as the
+# release the auto-updater reads. On other branches it only builds, and the
+# files can be downloaded from the run's artifacts.
+#
+# It can also be started by hand: Actions -> Release -> Run workflow.
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - config.py
+      - installer.iss
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PYTHONUTF8: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  build:
+    name: Build and release
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write  # create the release and upload its files
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = python -c "import re,pathlib; print(re.search(r'^APP_VERSION\s*=\s*\"([^\"]+)\"', pathlib.Path('config.py').read_text(encoding='utf-8'), re.M).group(1))"
+          if (-not $version) { Write-Host "::error::APP_VERSION not found in config.py"; exit 1 }
+          Write-Host "Version: $version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Check that a release for this version does not exist yet
+        id: exists
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release view $env:VERSION --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "::notice::Release $env:VERSION already exists: building only. Bump APP_VERSION to publish a new one."
+            "exists=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "exists=false" >> $env:GITHUB_OUTPUT
+          }
+          exit 0
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Install Inno Setup (if the runner lacks it)
+        shell: pwsh
+        run: |
+          $iscc = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") | Where-Object { Test-Path $_ }
+          if ($iscc) { Write-Host "Inno Setup found: $iscc"; exit 0 }
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Proteus and the installer
+        run: python scripts/build_all.py
+
+      - name: Create the update package
+        run: python scripts/create_update_package.py
+
+      - name: Check the build output
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $files = @("installer/Proteus_Setup_$env:VERSION.exe", "installer/update_package_$env:VERSION.zip")
+          foreach ($f in $files) {
+            if (-not (Test-Path $f)) { Write-Host "::error::Missing $f"; exit 1 }
+            Write-Host ("{0}: {1:N1} MB" -f $f, ((Get-Item $f).Length / 1MB))
+          }
+
+      - name: Upload build files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Proteus-${{ steps.version.outputs.version }}
+          path: |
+            installer/Proteus_Setup_*.exe
+            installer/update_package_*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish the release
+        if: steps.exists.outputs.exists == 'false' && github.ref_name == github.event.repository.default_branch
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $notes = "Proteus $env:VERSION`n`n- Uj telepites: Proteus_Setup_$env:VERSION.exe`n- A mar telepitett Proteus maga frissul (update_package_$env:VERSION.zip)"
+          gh release create $env:VERSION `
+            "installer/Proteus_Setup_$env:VERSION.exe" `
+            "installer/update_package_$env:VERSION.zip" `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title "Proteus $env:VERSION" `
+            --notes $notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
