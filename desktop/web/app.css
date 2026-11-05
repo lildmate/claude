@@ -155,6 +155,23 @@ td { padding: 10px 12px; border-bottom: 1px solid #1c2840; white-space: nowrap; 
   border-radius: 12px; padding: 12px 18px; font-weight: 600; box-shadow: 0 8px 30px rgba(0, 0, 0, .4);
 }
 
+/* custom skins */
+.row-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+a.btn { text-decoration: none; color: var(--text); }
+a.btn.primary { color: #141109; }
+.drop { margin-top: 14px; border: 2px dashed var(--line-2); border-radius: 14px; padding: 36px 20px; text-align: center; cursor: pointer; }
+.drop:hover, .drop.over { border-color: var(--gold); background: #16213a; }
+.drop:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.drop-title { font: 600 18px var(--display); margin-bottom: 6px; }
+.mod-card { display: flex; flex-direction: column; gap: 8px; }
+.mod-file { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #1c2840; }
+.mod-skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.mod-skin { display: flex; flex-direction: column; gap: 6px; padding: 0 0 8px; border: 2px solid var(--line); border-radius: 10px; background: var(--side); overflow: hidden; cursor: pointer; font-size: 12px; text-align: center; }
+.mod-skin img { aspect-ratio: 1 / 1; width: 100%; object-fit: cover; background: var(--line); }
+.mod-skin.on { border-color: var(--gold); }
+.mod-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.mod-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #1c2840; }
+
 /* patch notes */
 .tag.buff { background: var(--win-bg); color: var(--win-fg); }
 .tag.nerf { background: var(--loss-bg); color: var(--loss-fg); }

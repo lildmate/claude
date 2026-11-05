@@ -148,7 +148,7 @@
       n.classList.toggle("active", active);
       if (active) n.setAttribute("aria-current", "page"); else n.removeAttribute("aria-current");
     });
-    const pages = { home: renderHome, skins: renderSkins, patch: renderPatch, profile: renderProfile, settings: renderSettings };
+    const pages = { home: renderHome, skins: renderSkins, mods: renderMods, patch: renderPatch, profile: renderProfile, settings: renderSettings };
     const fn = pages[r.page] || renderHome;
     let content;
     try {
@@ -310,6 +310,147 @@
       if (on) on.scrollIntoView({ block: "nearest" });
     }, 0);
     return page("Skinek", layout);
+  }
+
+  // -- custom skins (mods) -----------------------------------------------------------
+  const MOD_KINDS = [["skin", "Skin"], ["maps", "Pálya"], ["fonts", "Betűtípus"], ["announcers", "Bemondó"],
+    ["ui", "Felület"], ["voiceover", "Hangok"], ["loading_screen", "Betöltőképernyő"], ["vfx", "Effektek"],
+    ["sfx", "Hangeffektek"], ["others", "Egyéb"]];
+  const MOD_SUFFIX = /\.(fantome|zip|modpkg)$/i;
+
+  function guessChampion(fileName, champions) {
+    const name = fileName.toLowerCase().replace(/[^a-z0-9]+/g, " ");
+    let best = null;
+    champions.forEach((c) => {
+      [c.name, c.alias].forEach((n) => {
+        const key = (n || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+        if (key && (" " + name + " ").includes(" " + key + " ") && (!best || key.length > best.key.length)) best = { key, id: c.id };
+      });
+    });
+    return best ? best.id : null;
+  }
+
+  async function renderMods() {
+    if (!championsCache) championsCache = (await api("/api/champions")).champions;
+    const champions = championsCache;
+    let file = null;
+    let kind = "skin";
+    let champ = null;
+    let selected = new Set();
+
+    const formBox = h("div", { class: "mod-form" });
+    const listBox = h("div", {});
+    const fileInput = h("input", { type: "file", accept: ".fantome,.zip,.modpkg", class: "hidden", id: "mod-file",
+      onchange: (e) => { if (e.target.files[0]) pick(e.target.files[0]); } });
+    const drop = h("div", { class: "drop", role: "button", tabindex: "0",
+      "aria-label": "Mod fájl kiválasztása vagy behúzása",
+      onclick: () => fileInput.click(),
+      onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } } },
+      h("div", { class: "drop-title", text: "Húzd ide a letöltött fájlt" }),
+      h("div", { class: "muted small", text: ".fantome, .zip vagy .modpkg · vagy kattints a kiválasztáshoz" }));
+    ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+    drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) pick(f); });
+
+    function pick(f) {
+      if (!MOD_SUFFIX.test(f.name)) { toast("Csak .fantome, .zip vagy .modpkg fájl tölthető fel"); return; }
+      file = f;
+      const guess = guessChampion(f.name, champions);
+      if (guess) { kind = "skin"; selectChampion(guess); } else { champ = null; selected = new Set(); drawForm(); }
+    }
+
+    async function selectChampion(id) {
+      champ = await api("/api/champions/" + id);
+      selected = new Set([champ.skins[0].id]);
+      drawForm();
+      drawList();
+    }
+
+    async function drawList() {
+      if (!champ) { listBox.replaceChildren(); return; }
+      const data = await api("/api/mods?champion=" + champ.id);
+      const names = Object.fromEntries(champ.skins.map((s) => [s.id, s.name]));
+      listBox.replaceChildren(h("div", { class: "card" },
+        h("h2", { text: champ.name + " saját skinjei" }),
+        data.mods.length
+          ? h("ul", { class: "mod-list" }, data.mods.map((m) => h("li", {},
+              h("span", { class: "skin-name", text: m.name }),
+              h("span", { class: "muted small", text: m.skinIds.map((id) => names[id] || id).join(", ") }))))
+          : h("div", { class: "muted", text: "Ehhez a championhöz még nincs saját skined." })));
+    }
+
+    function drawForm() {
+      if (!file) { formBox.replaceChildren(); return; }
+      const kindSelect = h("select", { class: "search", id: "mod-kind", onchange: (e) => { kind = e.target.value; drawForm(); } },
+        MOD_KINDS.map(([v, l]) => h("option", { value: v, text: l, selected: v === kind })));
+      const parts = [
+        h("div", { class: "mod-file" }, h("span", { class: "skin-name", text: file.name }),
+          h("span", { class: "muted small", text: (file.size / 1048576).toFixed(1) + " MB" })),
+        h("label", { for: "mod-kind", class: "muted small", text: "Mi ez?" }), kindSelect,
+      ];
+      if (kind === "skin") {
+        const champSelect = h("select", { class: "search", id: "mod-champ",
+          onchange: (e) => { if (e.target.value) selectChampion(parseInt(e.target.value, 10)); } },
+          h("option", { value: "", text: "Válassz championt…" }),
+          champions.map((c) => h("option", { value: c.id, text: c.name, selected: champ && c.id === champ.id })));
+        parts.push(h("label", { for: "mod-champ", class: "muted small", text: "Melyik champion skinje?" }), champSelect);
+        if (champ) {
+          parts.push(h("div", { class: "muted small", text: "Melyik skin helyett jelenjen meg? (többet is választhatsz)" }),
+            h("div", { class: "mod-skins" }, champ.skins.map((s) => h("button", {
+              class: "mod-skin" + (selected.has(s.id) ? " on" : ""), "aria-pressed": selected.has(s.id) ? "true" : "false",
+              onclick: () => { if (selected.has(s.id)) selected.delete(s.id); else selected.add(s.id); drawForm(); } },
+              picture(s.tile, "", ""), h("span", { text: s.name })))));
+        }
+      }
+      const ready = kind !== "skin" || (champ && selected.size);
+      const progress = h("div", { class: "muted small", id: "mod-progress" });
+      parts.push(h("div", { class: "row-actions" },
+        h("button", { class: "btn primary", disabled: !ready, text: "Feltöltés", onclick: (e) => upload(e.currentTarget, progress) }),
+        h("button", { class: "btn", text: "Mégse", onclick: () => { file = null; drawForm(); } })), progress);
+      formBox.replaceChildren(h("div", { class: "card mod-card" }, parts));
+    }
+
+    function upload(button, progress) {
+      button.disabled = true;
+      const params = new URLSearchParams({ name: file.name, kind });
+      if (kind === "skin") { params.set("champion", champ.id); params.set("skins", [...selected].join(",")); }
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/mods/upload?" + params.toString());
+      xhr.setRequestHeader("X-Proteus-Token", token);
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) progress.textContent = "Feltöltés: " + Math.round(e.loaded / e.total * 100) + "%"; };
+      xhr.onload = () => {
+        let res = {};
+        try { res = JSON.parse(xhr.responseText); } catch (e) { res = {}; }
+        if (xhr.status === 200 && res.ok) {
+          toast(res.name + " feltöltve");
+          file = null;
+          drawForm();
+          drawList();
+        } else {
+          progress.textContent = res.error || "Nem sikerült feltölteni";
+          button.disabled = false;
+        }
+      };
+      xhr.onerror = () => { progress.textContent = "Nem sikerült feltölteni"; button.disabled = false; };
+      progress.textContent = "Feltöltés…";
+      xhr.send(file);
+    }
+
+    return page("Saját skinek",
+      h("div", { class: "card" },
+        h("h2", { text: "1. Keress egy skint" }),
+        h("div", { class: "muted small", text: "Válassz egy egyedi skint, és töltsd le a fájlját." }),
+        h("div", { class: "row-actions" },
+          h("a", { class: "btn primary", href: "https://runeforge.io", target: "_blank", rel: "noopener", text: "Keresés itt: runeforge.io" }))),
+      h("div", { class: "card" },
+        h("h2", { text: "2. Töltsd fel" }),
+        h("div", { class: "muted small", text: "A letöltött fájlt húzd ide, vagy kattints és válaszd ki." }),
+        drop, fileInput),
+      formBox,
+      h("div", { class: "card" },
+        h("h2", { text: "3. Válaszd ki champion selectben" }),
+        h("div", { class: "muted small", text: "Champion selectben jobb alul a „Mods” gombbal tudod kiválasztani, hogy a skin helyett a saját skined legyen rajtad." })),
+      listBox);
   }
 
   // -- patch notes -------------------------------------------------------------------

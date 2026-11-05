@@ -30,6 +30,8 @@ from .store import Favorites, NextSkins
 log = get_logger()
 
 MAX_BODY = 16 * 1024
+MAX_UPLOAD = 4 * 1024 * 1024 * 1024  # map mods can take a few GB
+UPLOAD_CHUNK = 1024 * 1024
 
 
 def web_dir() -> Path:
@@ -45,8 +47,11 @@ class AppAPI:
 
     def __init__(self, game: GameData, client: ClientData, favorites: Favorites, next_skins: NextSkins,
                  version: str = "", open_folder: Optional[Callable[[str], bool]] = None,
-                 settings: Optional[dict] = None, patch_notes=None):
+                 settings: Optional[dict] = None, patch_notes=None, mods=None,
+                 upload_dir: Optional[Path] = None):
         self.patch_notes = patch_notes
+        self.mods = mods
+        self.upload_dir = upload_dir
         self.game = game
         self.client = client
         self.favorites = favorites
@@ -93,6 +98,11 @@ class AppAPI:
                 icons.setdefault(champ["alias"].casefold(), champ["icon"])
         champions = [dict(c, icon=icons.get(c["name"].casefold())) for c in notes["champions"]]
         return dict(notes, champions=champions, available=True)
+
+    def mod_list(self, champion_id: int) -> dict:
+        if not self.mods:
+            return {"mods": []}
+        return {"mods": self.mods.champion_mods(champion_id)}
 
     def profile(self) -> dict:
         if not self.client.connected():
@@ -202,6 +212,8 @@ class _Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             length = -1
+        if url.path == "/api/mods/upload":
+            return self._upload(parse_qs(url.query), length)
         if length < 0 or length > MAX_BODY:
             return self._json(413, {"error": "too large"})
         try:
@@ -228,6 +240,62 @@ class _Handler(BaseHTTPRequestHandler):
             log.warning("[Window] %s failed: %s", url.path, e)
             return self._json(500, {"error": "internal"})
 
+    def _upload(self, query: dict, length: int):
+        """A dropped mod file: streamed to a temporary file, imported, removed."""
+        from .mods import safe_upload_name
+
+        api = self.app.api
+        if not api.mods or not api.upload_dir:
+            return self._json(404, {"error": "not found"})
+        if length <= 0 or length > MAX_UPLOAD:
+            return self._json(413, {"error": "A fájl túl nagy vagy üres"})
+        first = lambda key: (query.get(key) or [""])[0]  # noqa: E731
+        try:
+            name = safe_upload_name(first("name"))
+            kind = first("kind") or "skin"
+            champion_id = int(first("champion") or 0) or None
+            skin_ids = [int(s) for s in first("skins").split(",") if s.strip()]
+        except ValueError as e:
+            self._drain(length)
+            return self._json(400, {"error": str(e)})
+        api.upload_dir.mkdir(parents=True, exist_ok=True)
+        target = api.upload_dir / (secrets.token_hex(8) + "_" + name)
+        try:
+            remaining = length
+            with open(target, "wb") as f:
+                while remaining > 0:
+                    chunk = self.rfile.read(min(UPLOAD_CHUNK, remaining))
+                    if not chunk:
+                        raise ValueError("A feltöltés megszakadt")
+                    f.write(chunk)
+                    remaining -= len(chunk)
+            # the import names the mod after the file: hand it the original name
+            named = target.with_name(name)
+            if named.exists():
+                named = target
+            else:
+                target.replace(named)
+                target = named
+            result = api.mods.import_file(named, kind, champion_id, skin_ids)
+            return self._json(200, result)
+        except (ValueError, FileNotFoundError) as e:
+            return self._json(400, {"error": str(e)})
+        except Exception as e:
+            log.warning("[Window] Mod import failed: %s", e)
+            return self._json(500, {"error": "Nem sikerült importálni: " + str(e)[:200]})
+        finally:
+            try:
+                target.unlink()
+            except OSError:
+                pass
+
+    def _drain(self, length: int) -> None:
+        while length > 0:
+            chunk = self.rfile.read(min(UPLOAD_CHUNK, length))
+            if not chunk:
+                break
+            length -= len(chunk)
+
     def _get_api(self, path: str, query: dict):
         api = self.app.api
         if path == "/img":
@@ -251,6 +319,12 @@ class _Handler(BaseHTTPRequestHandler):
             return self._json(200, api.favorite_skins())
         if path == "/api/profile":
             return self._json(200, api.profile())
+        if path == "/api/mods":
+            try:
+                champion_id = int((query.get("champion") or ["0"])[0])
+            except ValueError:
+                return self._json(400, {"error": "bad id"})
+            return self._json(200, api.mod_list(champion_id))
         if path == "/api/patch-notes":
             return self._json(200, api.latest_patch_notes())
         if path == "/api/settings":
