@@ -159,7 +159,10 @@
         : "Nem sikerült betölteni. Próbáld újra egy kicsit később." }));
     }
     if (id !== renderId) return; // a newer navigation won
+    const samePage = main.dataset.page === location.hash;
     main.replaceChildren(content);
+    main.dataset.page = location.hash;
+    if (!samePage) window.scrollTo(0, 0);
   }
   function page(title, ...children) {
     return h("div", { class: "page" }, h("div", { class: "page-head" }, h("h1", { text: title })), children);
