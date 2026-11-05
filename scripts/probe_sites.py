@@ -35,10 +35,13 @@ for url in ["https://op.gg/lol/champions/darius/build/top?target_champion=garen"
     r = requests.get(url, headers=UA, timeout=30)
     data = flight(r.text)
     print(url, r.status_code, "flight chars", len(data))
-    keys = sorted(set(re.findall(r'"([a-z_]{3,30})":', data)))
-    print("keys:", keys[:300])
-    for needle in ('"primary_page_id"', '"primary_rune_ids"', '8010', '"items"', '"win_rate"', '"tier_data"',
-                   '"version"', '"16.22', '"target_champion', '"play"'):
+    i = data.find('"rune_pages"')
+    j = data.find('"sub_runes"', i)
+    print("rune page tail:", data[j - 100: j + 1500] if j > 0 else "no sub_runes")
+    for needle in ('"core_items"', '"starter_items"', '"boots"', '"summoner_spells"', '"skill_masteries"',
+                   '"skills"', '"stat_mods"', '"positions"', '"champion_id":', '"average_stats"', '"tier":'):
         if needle in data:
-            show(data, needle, count=1)
+            show(data, needle, width=1200, count=1)
+        else:
+            print("absent:", needle)
 sys.exit(0)
