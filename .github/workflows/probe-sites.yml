@@ -21,6 +21,5 @@ jobs:
           persist-credentials: false
       - name: Probe
         run: |
-          python3 -m pip install --quiet requests playwright==1.48.0
-          python3 -m playwright install --with-deps chromium > /dev/null
+          python3 -m pip install --quiet requests
           python3 scripts/probe_sites.py
