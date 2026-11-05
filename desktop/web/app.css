@@ -24,6 +24,8 @@
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 var(--body); }
 button, input, select { font: inherit; color: inherit; }
 img { display: block; }
+a { color: var(--teal); }
+a:hover { color: #7fdce5; }
 .hidden { display: none !important; }
 
 .app { display: flex; min-height: 100%; }

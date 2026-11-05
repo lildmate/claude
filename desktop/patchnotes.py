@@ -35,7 +35,7 @@ HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Proteus"}
 # Labels where a smaller number is better for the champion or item
 LOWER_IS_BETTER = re.compile(
     r"cooldown|cost|cast time|delay|recharge|lockout|"
-    r"töltődési|visszatöltés|újratöltés|költség|ár\b|késleltetés|felkészülési idő|"
+    r"töltődési|töltési idő|visszatöltés|újratöltés|költség|ár\b|késleltetés|felkészülési idő|"
     r"mana|energia|energy",
     re.IGNORECASE,
 )
@@ -137,15 +137,33 @@ def _numbers(text: str) -> List[float]:
     return [float(n.replace(",", ".")) for n in NUMBER.findall(text)]
 
 
-def change_effect(label: str, old: str, new: str) -> str:
-    """'better', 'worse' or 'other' for the champion or item."""
-    a, b = _numbers(old), _numbers(new)
+def _split_ratio(text: str) -> Tuple[List[float], List[float]]:
+    """The base numbers, and the ones in parentheses (ratios: '+60% AP')."""
+    inside = " ".join(re.findall(r"\(([^)]*)\)", text))
+    outside = re.sub(r"\([^)]*\)", " ", text)
+    return _numbers(outside), _numbers(inside)
+
+
+def _direction(a: List[float], b: List[float]) -> int:
     if not a or not b or len(a) != len(b):
-        return "other"
+        return 0
     diff = sum(b) - sum(a)
-    if abs(diff) < 1e-9:
+    return 0 if abs(diff) < 1e-9 else (1 if diff > 0 else -1)
+
+
+def change_effect(label: str, old: str, new: str) -> str:
+    """'better', 'worse' or 'other' for the champion or item.
+
+    The base values decide; when they did not change, the ratios in
+    parentheses do (75 / 120 (+3% AP) => 75 / 120 (+4% AP) is better).
+    """
+    (base_a, ratio_a), (base_b, ratio_b) = _split_ratio(old), _split_ratio(new)
+    direction = _direction(base_a, base_b)
+    if direction == 0 and base_a == base_b:
+        direction = _direction(ratio_a, ratio_b)
+    if direction == 0:
         return "other"
-    up = diff > 0
+    up = direction > 0
     if LOWER_IS_BETTER.search(label or ""):
         up = not up
     return "better" if up else "worse"

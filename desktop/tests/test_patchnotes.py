@@ -56,6 +56,10 @@ class PatchNotesTests(unittest.TestCase):
         self.assertEqual(change_effect("Mana Cost", "60", "50"), "better")
         self.assertEqual(change_effect("Passive", "Old text", "New text"), "other")
         self.assertEqual(change_effect("Ratio", "1/2", "1/2/3"), "other")
+        self.assertEqual(change_effect("Töltési idő", "12 / 11 / 10 mp.", "10 / 9,5 / 9 mp."), "better")
+        # the base values did not change: the ratio in parentheses decides
+        self.assertEqual(change_effect("Sebzés", "75 / 120 (+3% AP)", "75 / 120 (+4% AP)"), "better")
+        self.assertEqual(change_effect("Damage", "50 / 75 (+60% AP)", "50 / 80 (+60 / 65% AP)"), "better")
         self.assertIsNone(percent_change("1/2", "2/3"))
         self.assertEqual(percent_change("30", "40"), 33)
 
