@@ -242,7 +242,7 @@ tr.me td { background: rgba(230, 195, 106, 0.08); }
    the cards let a little of it through */
 body.with-bg {
   /* the whole (portrait) picture on the right, faded into the background on its left */
-  background: linear-gradient(90deg, var(--bg) 0, var(--bg) 30%, rgba(11, 17, 29, 0.55) 60%, rgba(11, 17, 29, 0.45) 100%),
+  background: linear-gradient(90deg, var(--bg) 0, var(--bg) 58%, rgba(11, 17, 29, 0.75) 72%, rgba(11, 17, 29, 0.35) 100%),
     url("background.jpg") right center / contain fixed no-repeat, var(--bg);
 }
 body.with-bg .card { background: rgba(20, 30, 49, 0.86); backdrop-filter: blur(3px); }
