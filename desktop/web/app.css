@@ -237,3 +237,11 @@ a.btn.primary { color: #141109; }
 .live-items { display: flex; gap: 3px; flex-wrap: wrap; }
 .live-items img { width: 26px; height: 26px; border-radius: 4px; }
 tr.me td { background: rgba(230, 195, 106, 0.08); }
+
+/* Háttérkép (Beállítások): the picture behind the pages, dimmed so the text stays readable;
+   the cards let a little of it through */
+body.with-bg {
+  background: linear-gradient(rgba(11, 17, 29, 0.62), rgba(11, 17, 29, 0.78)), url("background.jpg") center 30% / cover fixed no-repeat, var(--bg);
+}
+body.with-bg .card { background: rgba(20, 30, 49, 0.86); backdrop-filter: blur(3px); }
+body.with-bg .side { background: rgba(11, 17, 29, 0.88); }

@@ -134,6 +134,10 @@
 
   // -- router ------------------------------------------------------------------------
   const main = document.getElementById("main");
+  // Háttérkép: on unless turned off in Beállítások (remembered in this window)
+  let background = true;
+  try { background = localStorage.getItem("proteus.background") !== "off"; } catch (e) { /* no storage */ }
+  document.body.classList.toggle("with-bg", background);
   let renderId = 0;
 
   function route() {
@@ -890,6 +894,15 @@
           toggle.setAttribute("aria-pressed", settings.windowOnStart ? "true" : "false");
         } catch (e) { toast("Nem sikerült menteni"); }
       } });
+    const bgToggle = h("button", { class: "toggle" + (background ? " on" : ""), "aria-pressed": background ? "true" : "false",
+      "aria-label": "Háttérkép",
+      onclick: () => {
+        background = !background;
+        try { localStorage.setItem("proteus.background", background ? "on" : "off"); } catch (e) { /* no storage */ }
+        document.body.classList.toggle("with-bg", background);
+        bgToggle.classList.toggle("on", background);
+        bgToggle.setAttribute("aria-pressed", background ? "true" : "false");
+      } });
     const autoToggle = h("button", { class: "toggle" + (settings.autoRunes ? " on" : ""), "aria-pressed": settings.autoRunes ? "true" : "false",
       "aria-label": "Rúnák automatikus beállítása",
       onclick: async () => {
@@ -909,6 +922,10 @@
           h("div", {}, h("div", { text: "Ablak megnyitása induláskor" }),
             h("div", { class: "muted small", text: "Kikapcsolva a Proteus csak a tálcán indul, az ablakot a tálcaikonnal nyithatod meg." })),
           toggle),
+        h("div", { class: "setting" },
+          h("div", {}, h("div", { text: "Háttérkép" }),
+            h("div", { class: "muted small", text: "A kép az ablak hátterében." })),
+          bgToggle),
         h("div", { class: "setting" },
           h("div", {}, h("div", { text: "Rúnák automatikus beállítása" }),
             h("div", { class: "muted small", text: "Amikor lezárod a championt, a build rúnái és spelljei maguktól bekerülnek (a lane-ellenfeled ellen, ha látszik)." })),
