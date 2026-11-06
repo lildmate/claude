@@ -150,6 +150,8 @@ class MessageHandler:
             port: Server port
         """
         self.shared_state = shared_state
+        self._party_off_by_user = False
+        threading.Thread(target=self._auto_party_loop, name="ProteusAutoParty", daemon=True).start()
         try:
             from desktop import rank_display
 
@@ -3323,6 +3325,8 @@ class MessageHandler:
 
     def _handle_party_enable(self, payload: dict) -> None:
         """Handle party mode enable request"""
+        if payload.get("type") == "party-enable":
+            self._party_off_by_user = False
         try:
             party_manager = getattr(self.shared_state, 'party_manager', None)
             if not party_manager:
@@ -3389,8 +3393,33 @@ class MessageHandler:
             }
             self._send_response(json.dumps(response_payload))
 
+    def _auto_party_loop(self) -> None:
+        """Party mode turns itself on (General.auto_party, on unless set off), so
+        the Proteus users of a lobby or team find each other without tokens.
+        Turning party mode off in the client keeps it off for this run."""
+        import time as _time
+
+        from party.core.party_manager import auto_party_enabled
+
+        while True:
+            _time.sleep(20)
+            try:
+                if self._party_off_by_user or not auto_party_enabled():
+                    continue
+                lcu = self.skin_scraper.lcu if self.skin_scraper else None
+                if not lcu or not lcu.ok or not (self.websocket_server and self.websocket_server.loop):
+                    continue
+                party_manager = getattr(self.shared_state, 'party_manager', None)
+                if party_manager and (party_manager.enabled or party_manager._enable_lock.locked()):
+                    continue
+                log.info("[PARTY] Turning party mode on by itself (automatic party)")
+                self._handle_party_enable({})
+            except Exception as e:
+                log.debug(f"[PARTY] Automatic party: {e}")
+
     def _handle_party_disable(self, payload: dict) -> None:
         """Handle party mode disable request"""
+        self._party_off_by_user = True
         try:
             party_manager = getattr(self.shared_state, 'party_manager', None)
             if not party_manager:

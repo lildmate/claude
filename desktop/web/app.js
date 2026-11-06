@@ -903,6 +903,16 @@
         bgToggle.classList.toggle("on", background);
         bgToggle.setAttribute("aria-pressed", background ? "true" : "false");
       } });
+    const partyToggle = h("button", { class: "toggle" + (settings.autoParty ? " on" : ""), "aria-pressed": settings.autoParty ? "true" : "false",
+      "aria-label": "Automatikus party",
+      onclick: async () => {
+        try {
+          const next = await api("/api/settings", { autoParty: !settings.autoParty });
+          settings.autoParty = next.autoParty;
+          partyToggle.classList.toggle("on", settings.autoParty);
+          partyToggle.setAttribute("aria-pressed", settings.autoParty ? "true" : "false");
+        } catch (e) { toast("Nem sikerült menteni"); }
+      } });
     const autoToggle = h("button", { class: "toggle" + (settings.autoRunes ? " on" : ""), "aria-pressed": settings.autoRunes ? "true" : "false",
       "aria-label": "Rúnák automatikus beállítása",
       onclick: async () => {
@@ -922,6 +932,10 @@
           h("div", {}, h("div", { text: "Ablak megnyitása induláskor" }),
             h("div", { class: "muted small", text: "Kikapcsolva a Proteus csak a tálcán indul, az ablakot a tálcaikonnal nyithatod meg." })),
           toggle),
+        h("div", { class: "setting" },
+          h("div", {}, h("div", { text: "Automatikus party" }),
+            h("div", { class: "muted small", text: "A party mode magától bekapcsol, és token nélkül összeköt a lobbyd és a csapatod többi Proteus-os játékosával: látjátok egymás skinjét és rangját." })),
+          partyToggle),
         h("div", { class: "setting" },
           h("div", {}, h("div", { text: "Háttérkép" }),
             h("div", { class: "muted small", text: "A kép az ablak hátterében." })),

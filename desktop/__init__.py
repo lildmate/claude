@@ -17,6 +17,7 @@ log = get_logger()
 
 WINDOW_ON_START_OPTION = ("General", "window_on_start")
 AUTO_RUNES_OPTION = ("General", "auto_runes")
+AUTO_PARTY_OPTION = ("General", "auto_party")
 BUILD_RANK_OPTION = ("General", "build_rank")
 
 
@@ -54,11 +55,15 @@ def _settings():
         auto = (get_config_option(*AUTO_RUNES_OPTION, "true") or "true").strip().lower()
         return {"windowOnStart": value not in ("0", "false", "no", "off"), "rankDisplay": rank_display.own(),
                 "autoRunes": auto not in ("0", "false", "no", "off"),
+                "autoParty": (get_config_option(*AUTO_PARTY_OPTION, "true") or "true").strip().lower()
+                not in ("0", "false", "no", "off"),
                 "buildRank": (get_config_option(*BUILD_RANK_OPTION, "") or "").strip() or None}
 
     def put(body: dict):
         if "windowOnStart" in body:
             set_config_option(*WINDOW_ON_START_OPTION, "true" if body["windowOnStart"] else "false")
+        if "autoParty" in body:
+            set_config_option(*AUTO_PARTY_OPTION, "true" if body["autoParty"] else "false")
         if "autoRunes" in body:
             set_config_option(*AUTO_RUNES_OPTION, "true" if body["autoRunes"] else "false")
         if "buildRank" in body:

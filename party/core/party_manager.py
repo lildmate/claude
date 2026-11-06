@@ -12,6 +12,7 @@ still see everybody.
 """
 
 import asyncio
+import hashlib
 import re
 import time
 from typing import Callable, Dict, List, Optional, Set, Tuple
@@ -46,6 +47,27 @@ MAX_ROOMS = 8
 # Before retrying an advertised room that couldn't be reached
 FOLLOW_RETRY_S = 60.0
 _ROOM_KEY_RE = re.compile(r"^[0-9a-f]{32}$")
+# Proteus users in the same premade lobby, or on the same team in champion
+# select, find each other without tokens: they all compute the same room key
+# from what only they can see (the lobby's party id; the game id with the
+# team's puuids). Turned off with General.auto_party = false.
+AUTO_PARTY_OPTION = ("General", "auto_party")
+_AUTO_ROOM_PHASES_KEEP = ("GameStart", "InProgress", "Reconnect", "WaitingForStats", "PreEndOfGame")
+
+
+def auto_party_enabled() -> bool:
+    try:
+        from config import get_config_option
+
+        value = (get_config_option(*AUTO_PARTY_OPTION, "true") or "true").strip().lower()
+        return value not in ("0", "false", "no", "off")
+    except Exception:
+        return True
+
+
+def auto_room_key(kind: str, *parts) -> str:
+    raw = "proteus-auto-party:" + kind + ":" + ":".join(str(p) for p in parts)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
 def _to_int(value) -> Optional[int]:
@@ -106,6 +128,9 @@ class PartyManager:
         # Callbacks for UI updates
         self._on_state_change: Optional[Callable[[PartyState], None]] = None
         self._on_peer_update: Optional[Callable[[int, dict], None]] = None
+
+        # The room shared with the Proteus users in our lobby or team (no token)
+        self._auto_room: Optional[str] = None
 
         # The rank we show to the party (see desktop.rank_display)
         self._loop: Optional[asyncio.AbstractEventLoop] = None
@@ -203,6 +228,7 @@ class PartyManager:
 
         self._unreachable_rooms.clear()
         self._ignored_peers.clear()
+        self._auto_room = None
         self._skin_state = None
         self._published_state = None
         self.party_state.clear_all()
@@ -357,7 +383,9 @@ class PartyManager:
             return
 
         now = time.monotonic()
-        for member, _ in self._merged_members().values():
+        befriended = [member for key, relay in list(self._relays.items()) if key != self._auto_room
+                      for member in relay.members]
+        for member in befriended:
             skin = member.get("skin")
             rooms = skin.get("rooms") if isinstance(skin, dict) else None
             if not isinstance(rooms, list):
@@ -381,9 +409,11 @@ class PartyManager:
     async def _publish_state(self):
         """Send our state (skin pick + rooms) to every room we're in."""
         state = dict(self._skin_state or {})
-        if len(self._relays) > 1:
-            # Advertise our rooms so the rest of the party joins them too
-            state["rooms"] = sorted(self._relays)[:MAX_ROOMS]
+        token_rooms = sorted(key for key in self._relays if key != self._auto_room)
+        if len(token_rooms) > 1:
+            # Advertise our rooms so the rest of the party joins them too (not
+            # the lobby/team room: the people met there are not friends)
+            state["rooms"] = token_rooms[:MAX_ROOMS]
         if self._ignored_peers:
             # The friends we removed hide us too (see _merged_members)
             state["removed"] = sorted(self._ignored_peers)
@@ -525,6 +555,8 @@ class PartyManager:
                 if not self._running or not self._lobby_matcher:
                     continue
 
+                await self._sync_auto_room()
+
                 # LCU requests block: keep them off the event loop
                 lobby_ids = await asyncio.to_thread(self._lobby_matcher.get_all_summoner_ids)
                 changed = False
@@ -545,6 +577,53 @@ class PartyManager:
                 break
             except Exception as e:
                 log.info(f"[PARTY] Lobby check error: {e}")
+
+    def _wanted_auto_room(self) -> Optional[str]:
+        """The room of our premade lobby or champion select team (blocking: LCU)."""
+        if not auto_party_enabled():
+            return None
+        phase = self.lcu.get("/lol-gameflow/v1/gameflow-phase", timeout=2)
+        if phase in ("Lobby", "Matchmaking", "ReadyCheck"):
+            lobby = self.lcu.get("/lol-lobby/v2/lobby", timeout=2)
+            if isinstance(lobby, dict) and lobby.get("partyId") and len(lobby.get("members") or []) > 1:
+                return auto_room_key("lobby", lobby["partyId"])
+            return None
+        if phase == "ChampSelect":
+            session = self.lcu.get("/lol-champ-select/v1/session", timeout=2)
+            if not isinstance(session, dict):
+                return self._auto_room
+            team = sorted(str(p.get("puuid")) for p in session.get("myTeam") or [] if p.get("puuid"))
+            game_id = session.get("gameId")
+            if game_id and len(team) > 1:
+                return auto_room_key("team", game_id, *team)
+            return self._auto_room
+        if phase in _AUTO_ROOM_PHASES_KEEP:
+            return self._auto_room  # the skins of the team are still being used
+        return None
+
+    async def _sync_auto_room(self):
+        try:
+            wanted = await asyncio.to_thread(self._wanted_auto_room)
+        except Exception as e:
+            log.debug(f"[PARTY] Lobby room check failed: {e}")
+            return
+        if wanted == self._auto_room:
+            return
+        old, self._auto_room = self._auto_room, wanted
+        if old and old != self._home_room:
+            relay = self._relays.pop(old, None)
+            if relay:
+                await relay.disconnect()
+                self._refresh_peers()
+        if wanted and wanted not in self._relays:
+            if len(self._relays) >= MAX_ROOMS:
+                log.warning("[PARTY] Too many rooms for the lobby room")
+                return
+            log.info(f"[PARTY] Joining the room of our lobby/team {wanted[:8]} (no token needed)")
+            error = await self._join_room(wanted)
+            if error:
+                log.info(f"[PARTY] Lobby room not reachable: {error}")
+                self._auto_room = None
 
     async def _skin_broadcast_loop(self):
         """Broadcast our pick once it settles, or at once when our injection starts."""

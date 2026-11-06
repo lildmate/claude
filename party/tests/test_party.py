@@ -674,3 +674,60 @@ class PartyOnlyInjectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AutoRoomTests(unittest.TestCase):
+    """The Proteus users of a lobby or team find each other without tokens."""
+
+    def manager(self, answers):
+        lcu = Mock()
+        lcu.get.side_effect = lambda path, timeout=None: answers.get(path)
+        manager = PartyManager(lcu, make_state())
+        manager.party_state.my_summoner_id = 1
+        return manager
+
+    def team(self, *puuids, game_id=777):
+        return {"gameId": game_id, "myTeam": [{"puuid": p} for p in puuids]}
+
+    def test_the_same_team_gets_the_same_room(self):
+        mine = self.manager({"/lol-gameflow/v1/gameflow-phase": "ChampSelect",
+                             "/lol-champ-select/v1/session": self.team("b", "a", "c")})
+        theirs = self.manager({"/lol-gameflow/v1/gameflow-phase": "ChampSelect",
+                               "/lol-champ-select/v1/session": self.team("c", "b", "a")})
+        other_game = self.manager({"/lol-gameflow/v1/gameflow-phase": "ChampSelect",
+                                   "/lol-champ-select/v1/session": self.team("a", "b", "c", game_id=778)})
+        self.assertEqual(mine._wanted_auto_room(), theirs._wanted_auto_room())
+        self.assertNotEqual(mine._wanted_auto_room(), other_game._wanted_auto_room())
+
+    def test_a_premade_lobby_gets_a_room_and_a_lonely_one_none(self):
+        lobby = {"partyId": "p-1", "members": [{}, {}]}
+        manager = self.manager({"/lol-gameflow/v1/gameflow-phase": "Lobby", "/lol-lobby/v2/lobby": lobby})
+        self.assertRegex(manager._wanted_auto_room(), r"^[0-9a-f]{32}$")
+        lobby["members"] = [{}]
+        self.assertIsNone(manager._wanted_auto_room())
+
+    def test_off_in_the_settings(self):
+        manager = self.manager({"/lol-gameflow/v1/gameflow-phase": "ChampSelect",
+                                "/lol-champ-select/v1/session": self.team("a", "b")})
+        with patch("party.core.party_manager.auto_party_enabled", return_value=False):
+            self.assertIsNone(manager._wanted_auto_room())
+
+    def test_the_team_room_is_neither_advertised_nor_followed(self):
+        manager = self.manager({})
+        manager._running = True
+        manager._auto_room = "c" * 32
+        stranger = member(9, "Stranger", 11, 11001, rooms=["d" * 32])
+        sent = []
+
+        async def send_state(state):
+            sent.append(state)
+        manager._relays = {
+            "a" * 32: SimpleNamespace(members=[member(1, "Me")], connected=True, send_state=send_state),
+            "b" * 32: SimpleNamespace(members=[], connected=True, send_state=send_state),
+            "c" * 32: SimpleNamespace(members=[stranger], connected=True, send_state=send_state),
+        }
+        asyncio.run(manager._publish_state())
+        self.assertEqual(sent[-1]["rooms"], ["a" * 32, "b" * 32])
+        with patch("party.core.party_manager.asyncio.create_task") as task:
+            manager._follow_advertised_rooms()
+        task.assert_not_called()
